@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# import-src.sh - Import specific release of FreeBSD source in to
+# import-src.sh - Import specific release of NetBSD source in to
 #                 this tree.  Primarily for maintenance use when
-#                 a new version of FreeBSD comes out.
+#                 a new version of NetBSD comes out.
 #
-# Author: David Cantrell <david.l.cantrell@gmail.com>
+# Original author: David Cantrell <david.l.cantrell@gmail.com>
 #
 
 PATH=/bin:/usr/bin
@@ -19,7 +19,7 @@ fail_exit() {
 }
 
 rm -rf src.orig
-mkdir -p src.orig src.freebsd
+mkdir -p src.orig src.netbsd
 
 SRCTAR=
 if [ -n "$1" ]; then
@@ -29,11 +29,11 @@ fi
 
 cd ${TMPDIR}
 if [ -z "$SRCTAR" ]; then
-    SRCTAR="src.txz"
+    SRCTAR="src.tgz"
     curl -L --retry 3 --ftp-pasv -o "$SRCTAR" "$SRC" || fail_exit
-    echo "$SHA256 '$SRCTAR'" | sha256sum --quiet --check - || fail_exit
+    echo "$SHA512  $SRCTAR" | sha512sum --status -c - || fail_exit
 fi
-xz -dc "$SRCTAR" | tar -xf -
+tar -xf "$SRCTAR"
 
 copy_cmd() {
     p="$1"
@@ -48,8 +48,9 @@ copy_cmd() {
         dp="$dn"
     fi
 
-    # Drop the tests/ subdirectories
-    [ -d ${rp}/tests ] && rm -rf ${rp}/tests
+    # Drop the tests directories
+    [ -d ${rp}/test ] && rm -rf ${rp}/test
+    [ -d ${rp}/TEST ] && rm -rf ${rp}/TEST
 
     # Rename the upstream Makefile for later manual checking.  We don't
     # commit these to our tree, but just look at them when rebasing and
@@ -58,14 +59,11 @@ copy_cmd() {
         mv ${rp}/Makefile ${rp}/Makefile.bsd
     fi
 
-    # Drop the Makefile.depend* files
-    rm -f ${rp}/Makefile.depend*
-
     # Copy in the upstream files
     [ -d ${CWD}/src.orig/${dp} ] || mkdir -p ${CWD}/src.orig/${dp}
-    [ -d ${CWD}/src.freebsd/${dp} ] || mkdir -p ${CWD}/src.freebsd/${dp}
+    [ -d ${CWD}/src.netbsd/${dp} ] || mkdir -p ${CWD}/src.netbsd/${dp}
     cp -pr ${rp}/* ${CWD}/src.orig/${dp}
-    cp -pr ${rp}/* ${CWD}/src.freebsd/${dp}
+    cp -pr ${rp}/* ${CWD}/src.netbsd/${dp}
 }
 
 # coreutils
@@ -83,28 +81,25 @@ bin/ln
 bin/ls
 bin/mkdir
 bin/mv
-bin/nproc
 bin/pwd
-bin/realpath
 bin/rm
 bin/rmdir
 bin/sleep
 bin/stty
 bin/sync
 bin/test
-bin/timeout
-sbin/md5
+sbin/chown
 sbin/mknod
+usr.bin/base64
 usr.bin/basename
 usr.bin/cksum
 usr.bin/comm
-usr.bin/cut
 usr.bin/csplit
+usr.bin/cut
 usr.bin/dirname
 usr.bin/du
 usr.bin/env
 usr.bin/expand
-usr.bin/factor
 usr.bin/false
 usr.bin/fmt
 usr.bin/fold
@@ -112,8 +107,8 @@ usr.bin/head
 usr.bin/id
 usr.bin/join
 usr.bin/logname
-usr.bin/mktemp
 usr.bin/mkfifo
+usr.bin/mktemp
 usr.bin/nice
 usr.bin/nl
 usr.bin/nohup
@@ -122,17 +117,17 @@ usr.bin/pathchk
 usr.bin/pr
 usr.bin/printenv
 usr.bin/printf
+usr.bin/realpath
 usr.bin/seq
 usr.bin/sort
 usr.bin/split
 usr.bin/stat
-usr.bin/stdbuf
 usr.bin/tail
 usr.bin/tee
+usr.bin/timeout
 usr.bin/touch
 usr.bin/tr
 usr.bin/true
-usr.bin/truncate
 usr.bin/tsort
 usr.bin/tty
 usr.bin/uname
@@ -143,17 +138,20 @@ usr.bin/wc
 usr.bin/who
 usr.bin/yes
 usr.bin/xinstall
-usr.sbin/chown
 usr.sbin/chroot
+usr.sbin/link
+usr.sbin/unlink
+games/factor
 "
 
 # diffutils
 CMDS_DIFF="
 usr.bin/cmp
-usr.bin/diff
-usr.bin/diff3
 usr.bin/sdiff
 "
+#usr.bin/diff
+#usr.bin/diff3
+
 
 # findutils
 CMDS_FIND="
@@ -179,7 +177,7 @@ usr.bin/indent
 usr.bin/logger
 usr.bin/look
 usr.bin/mesg
-usr.bin/ncal
+usr.bin/cal
 usr.bin/renice
 usr.bin/rev
 usr.bin/script
@@ -214,9 +212,7 @@ done
 copy_cmd bin/ed
 copy_cmd bin/sh
 copy_cmd usr.bin/apply
-copy_cmd usr.bin/bintrans
 copy_cmd usr.bin/compress
-copy_cmd usr.bin/fetch
 copy_cmd usr.bin/gencat
 copy_cmd usr.bin/grep
 copy_cmd usr.bin/gzip
@@ -226,54 +222,36 @@ copy_cmd usr.bin/patch
 copy_cmd usr.bin/sed
 copy_cmd usr.bin/su
 copy_cmd usr.bin/tip
-copy_cmd usr.bin/which
-copy_cmd contrib/ee
-copy_cmd contrib/netcat
-copy_cmd contrib/nvi
-copy_cmd contrib/one-true-awk "" awk
-copy_cmd contrib/telnet
-copy_cmd contrib/vis
-copy_cmd contrib/unvis
-copy_cmd lib/libmp
-copy_cmd lib/libfetch
-copy_cmd lib/libstdbuf
-
-# we use c++ for ln
-mv ${CWD}/src.orig/coreutils/ln/ln.c ${CWD}/src.orig/coreutils/ln/ln.cc
-mv ${CWD}/src.freebsd/coreutils/ln/ln.c ${CWD}/src.freebsd/coreutils/ln/ln.cc
+copy_cmd usr.bin/vis
+copy_cmd usr.bin/unvis
+#copy_cmd contrib/netcat
+#copy_cmd contrib/nvi
+#copy_cmd contrib/one-true-awk "" awk
+#copy_cmd contrib/telnet
 
 # 'compat' is our static library with a subset of BSD library functions
 mkdir -p ${CWD}/src.orig/compat ${CWD}/src.orig/include
-cp -p usr/src/lib/libutil/expand_number.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/getbsize.c ${CWD}/src.orig/compat
-cp -p usr/src/lib/libc/stdlib/heapsort.c ${CWD}/src.orig/compat
-cp -p usr/src/lib/libutil/humanize_number.c ${CWD}/src.orig/compat
+cp -p usr/src/lib/libc/gen/humanize_number.c ${CWD}/src.orig/compat
+cp -p usr/src/lib/libutil/parsedate.y ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/stdlib/merge.c ${CWD}/src.orig/compat
-cp -p usr/src/lib/libopenbsd/ohash.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/setmode.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/string/strmode.c ${CWD}/src.orig/compat
-cp -p usr/src/lib/libc/gen/stringlist.c ${CWD}/src.orig/compat
-cp -p usr/src/lib/libc/stdtime/strptime.c ${CWD}/src.orig/compat
-cp -p usr/src/lib/libc/stdtime/strftime.c ${CWD}/src.orig/compat
-cp -p usr/src/lib/libc/stdio/mktemp.c ${CWD}/src.orig/compat
-cp -p usr/src/contrib/libc-vis/vis.c ${CWD}/src.orig/compat
-cp -p usr/src/contrib/libc-vis/unvis.c ${CWD}/src.orig/compat
-cp -p usr/src/include/stringlist.h ${CWD}/src.orig/include
-cp -p usr/src/contrib/libc-vis/vis.h ${CWD}/src.orig/include
-cp -p usr/src/lib/libopenbsd/ohash.h ${CWD}/src.orig/include
+cp -p usr/src/lib/libc/gen/vis.c ${CWD}/src.orig/compat
+cp -p usr/src/lib/libc/gen/unvis.c ${CWD}/src.orig/compat
+cp -p usr/src/libutil/strpct.c ${CWD}/src.orig/compat
+cp -p usr/src/include/vis.h ${CWD}/src.orig/include
 
 # 'util' is our public library with stuff that may be missing in libc
 mkdir -p ${CWD}/src.orig/util
-cp -p usr/src/lib/libc/locale/rpmatch.c ${CWD}/src.orig/util
-cp -p usr/src/lib/libc/locale/rpmatch.3 ${CWD}/src.orig/util
 cp -p usr/src/lib/libc/gen/fts.c ${CWD}/src.orig/util
 cp -p usr/src/lib/libc/gen/fts.3 ${CWD}/src.orig/util
 cp -p usr/src/include/fts.h ${CWD}/src.orig/include
 
-mkdir -p ${CWD}/src.freebsd/compat ${CWD}/src.freebsd/include ${CWD}/src.freebsd/util
-cp -p ${CWD}/src.orig/compat/* ${CWD}/src.freebsd/compat
-cp -p ${CWD}/src.orig/include/* ${CWD}/src.freebsd/include
-cp -p ${CWD}/src.orig/util/* ${CWD}/src.freebsd/util
+mkdir -p ${CWD}/src.netbsd/compat ${CWD}/src.netbsd/include ${CWD}/src.netbsd/util
+cp -p ${CWD}/src.orig/compat/* ${CWD}/src.netbsd/compat
+cp -p ${CWD}/src.orig/include/* ${CWD}/src.netbsd/include
+cp -p ${CWD}/src.orig/util/* ${CWD}/src.netbsd/util
 
 # 'dbcompat' is our subset of berkeley db 1.85
 mkdir -p ${CWD}/src.orig/dbcompat/btree ${CWD}/src.orig/dbcompat/recno ${CWD}/src.orig/dbinclude
@@ -284,88 +262,90 @@ cp -p usr/src/lib/libc/db/recno/*.[ch] ${CWD}/src.orig/dbcompat/recno
 cp -p usr/src/include/db.h ${CWD}/src.orig/dbinclude
 cp -p usr/src/include/mpool.h ${CWD}/src.orig/dbinclude
 
-mkdir -p ${CWD}/src.freebsd/dbcompat ${CWD}/src.freebsd/dbinclude
-cp -pr ${CWD}/src.orig/dbcompat/* ${CWD}/src.freebsd/dbcompat
-cp -pr ${CWD}/src.orig/dbinclude/* ${CWD}/src.freebsd/dbinclude
+mkdir -p ${CWD}/src.netbsd/dbcompat ${CWD}/src.netbsd/dbinclude
+cp -pr ${CWD}/src.orig/dbcompat/* ${CWD}/src.netbsd/dbcompat
+cp -pr ${CWD}/src.orig/dbinclude/* ${CWD}/src.netbsd/dbinclude
 
 # These files are needed for the factor command
-cp -p usr/src/usr.bin/primes/primes.h ${CWD}/src.orig/coreutils/factor
-cp -p usr/src/usr.bin/primes/pr_tbl.c ${CWD}/src.orig/coreutils/factor
-cp -p usr/src/usr.bin/primes/primes.h ${CWD}/src.freebsd/coreutils/factor
-cp -p usr/src/usr.bin/primes/pr_tbl.c ${CWD}/src.freebsd/coreutils/factor
+cp -p usr/src/games/primes/primes.h ${CWD}/src.orig/coreutils/factor
+cp -p usr/src/games/primes/pr_tbl.c ${CWD}/src.orig/coreutils/factor
+cp -p usr/src/games/primes/primes.h ${CWD}/src.netbsd/coreutils/factor
+cp -p usr/src/games/primes/pr_tbl.c ${CWD}/src.netbsd/coreutils/factor
+
+# This function is needed for the wall command
+cp -p usr/src/lib/libutil/ttymsg.c ${CWD}/src.orig/miscutils/wall
+cp -p usr/src/lib/libutil/ttymsg.c ${CWD}/src.netbsd/miscutils/wall
+
+# This file is needed for the time command
+cp -p usr/src/bin/csh/time.c ${CWD}/src.orig/miscutils/time/csh_time.c
+cp -p usr/src/bin/csh/time.c ${CWD}/src.netbsd/miscutils/time/csh_time.c
+
+# This header is required for some programs
+cp -p usr/src/include/tzfile.h ${CWD}/src.orig/include
+cp -p usr/src/include/tzfile.h ${CWD}/src.netbsd/include
 
 # These are not used
 rm -rf ${CWD}/src.orig/coreutils/sort/nls
-rm -rf ${CWD}/src.freebsd/coreutils/sort/nls
-
-# sort manpage
-mv ${CWD}/src.orig/coreutils/sort/sort.1.in ${CWD}/src.orig/coreutils/sort/sort.1
-mv ${CWD}/src.freebsd/coreutils/sort/sort.1.in ${CWD}/src.freebsd/coreutils/sort/sort.1
-
-# libcalendar internal copy for ncal(1)
-cp -p usr/src/lib/libcalendar/easter.c ${CWD}/src.orig/miscutils/ncal/easter.c
-cp -p usr/src/lib/libcalendar/calendar.c ${CWD}/src.orig/miscutils/ncal/calendar.c
-cp -p usr/src/lib/libcalendar/calendar.h ${CWD}/src.orig/miscutils/ncal/calendar.h
-cp -p usr/src/lib/libcalendar/easter.c ${CWD}/src.freebsd/miscutils/ncal/easter.c
-cp -p usr/src/lib/libcalendar/calendar.c ${CWD}/src.freebsd/miscutils/ncal/calendar.c
-cp -p usr/src/lib/libcalendar/calendar.h ${CWD}/src.freebsd/miscutils/ncal/calendar.h
+rm -rf ${CWD}/src.netbsd/coreutils/sort/nls
 
 # fix sh generator permissions
 chmod 755 ${CWD}/src.orig/sh/mkbuiltins
 chmod 755 ${CWD}/src.orig/sh/mktokens
-chmod 755 ${CWD}/src.freebsd/sh/mkbuiltins
-chmod 755 ${CWD}/src.freebsd/sh/mktokens
+chmod 755 ${CWD}/src.netbsd/sh/mkbuiltins
+chmod 755 ${CWD}/src.netbsd/sh/mktokens
 
 # remove sh files we don't want
 rm -rf ${CWD}/src.orig/sh/dot.*
 rm -rf ${CWD}/src.orig/sh/funcs
 rm -f ${CWD}/src.orig/sh/profile
-rm -rf ${CWD}/src.freebsd/sh/dot.*
-rm -rf ${CWD}/src.freebsd/sh/funcs
-rm -f ${CWD}/src.freebsd/sh/profile
+rm -rf ${CWD}/src.netbsd/sh/dot.*
+rm -rf ${CWD}/src.netbsd/sh/funcs
+rm -f ${CWD}/src.netbsd/sh/profile
 
 # tip cap parser
 cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.orig/tip
-cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.freebsd/tip
-rm -f ${CWD}/src.freebsd/tip/getcap.h
+cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.netbsd/tip
+rm -f ${CWD}/src.netbsd/tip/getcap.h
 
 # remote(5)
-cp -p usr/src/share/man/man5/remote.5 ${CWD}/src.orig/tip
-cp -p usr/src/share/man/man5/remote.5 ${CWD}/src.freebsd/tip
+#cp -p usr/src/share/man/man5/remote.5 ${CWD}/src.orig/tip
+#cp -p usr/src/share/man/man5/remote.5 ${CWD}/src.netbsd/tip
 
 # remove leftover makefiles from tip
 rm -f ${CWD}/src.orig/tip/Makefile*
 rm -f ${CWD}/src.orig/tip/tip/Makefile*
-rm -f ${CWD}/src.freebsd/tip/Makefile*
-rm -f ${CWD}/src.freebsd/tip/tip/Makefile*
+rm -f ${CWD}/src.netbsd/tip/Makefile*
+rm -f ${CWD}/src.netbsd/tip/tip/Makefile*
 
 # temove telnetd
 rm -rf ${CWD}/src.orig/telnet/telnetd
-rm -rf ${CWD}/src.freebsd/telnet/telnetd
+rm -rf ${CWD}/src.netbsd/telnet/telnetd
 
 # remove our own scripts before patching
-rm -f ${CWD}/src.freebsd/findutils/locate/updatedb.sh.in
-rm -f ${CWD}/src.freebsd/nvi/*.sh
-rm -f ${CWD}/src.freebsd/libfetch/*.sh
+rm -f ${CWD}/src.netbsd/findutils/locate/updatedb.sh.in
+rm -f ${CWD}/src.netbsd/nvi/*.sh
+rm -f ${CWD}/src.netbsd/libfetch/*.sh
 
 # make the locate scripts possible to process
 for sc in ${CWD}/src.orig/findutils/locate/locate/*.sh; do
     mv "$sc" "$sc.in"
 done
-for sc in ${CWD}/src.freebsd/findutils/locate/locate/*.sh; do
+for sc in ${CWD}/src.netbsd/findutils/locate/locate/*.sh; do
     mv "$sc" "$sc.in"
 done
 
 # remove rpmatch header which is our own and applied by patch
-rm -f ${CWD}/src.freebsd/include/rpmatch.h
+rm -f ${CWD}/src.netbsd/include/rpmatch.h
 
 # awk manpage
-cp -p usr/src/usr.bin/awk/awk.1 ${CWD}/src.orig/awk
-cp -p usr/src/usr.bin/awk/awk.1 ${CWD}/src.freebsd/awk
+#cp -p usr/src/usr.bin/awk/awk.1 ${CWD}/src.orig/awk
+#cp -p usr/src/usr.bin/awk/awk.1 ${CWD}/src.netbsd/awk
 
 # meh
 rm -rf ${CWD}/src.orig/awk/testdir
-rm -rf ${CWD}/src.freebsd/awk/testdir
+rm -rf ${CWD}/src.netbsd/awk/testdir
+rm -rf ${CWD}/src.orig/miscutils/calendar/calendars/CVS
+rm -rf ${CWD}/src.netbsd/miscutils/calendar/calendars/CVS
 
 #####################
 # APPLY ANY PATCHES #
@@ -373,14 +353,14 @@ rm -rf ${CWD}/src.freebsd/awk/testdir
 
 cd ${CWD}/patches
 
-for p in *.patch; do
-    [ -f "$p" ] || continue
-    patch -d ${CWD}/src.freebsd -p1 < $p
-done
+#for p in *.patch; do
+#    [ -f "$p" ] || continue
+#    patch -d ${CWD}/src.netbsd -p1 < $p
+#done
 
 # fix up permissions
-chmod 755 ${CWD}/src.freebsd/nvi/*.sh
-chmod 755 ${CWD}/src.freebsd/libfetch/*.sh
+#chmod 755 ${CWD}/src.netbsd/nvi/*.sh
+#chmod 755 ${CWD}/src.netbsd/libfetch/*.sh
 
 # Clean up
 rm -rf ${TMPDIR}

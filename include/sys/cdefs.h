@@ -43,18 +43,15 @@
 #endif
 
 #define __COPYRIGHT(x)
-#define __FBSDID(x)
-#define __SCCSID(x)
 #define __RCSID(x)
+#define __RENAME(x)
 
-#define __dead2
-#define __printf0like(x, y)
+#define __dead
 #define __printflike(x, y) __attribute__((format(printf, x, y)))
+#define __arraycount(a) (sizeof(a) / sizeof(a[0]))
 
-#ifndef  __cplusplus
-#define __DECONST(a, v) ((a)(v))
+#define __UNCONST(a)	((void *)(unsigned long)(const void *)(a))
 #define __unused __attribute__((unused))
 #define __unreachable() __builtin_unreachable()
-#endif
 
 #endif

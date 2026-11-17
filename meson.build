@@ -1,7 +1,7 @@
 project(
-    'chimerautils',
+    'chimerautils-nb',
     ['c', 'cpp'],
-    version: '15.1.2',
+    version: '11.1',
     default_options: [
         'c_std=c99',
         'cpp_rtti=false',
@@ -114,7 +114,7 @@ chimera_realpath = get_option('chimera_realpath')
 libacl = dependency('libacl', required: true)
 
 # bc(1) needs libedit
-libedit = dependency('libedit', required: get_option('libedit'))
+#libedit = dependency('libedit', required: get_option('libedit'))
 
 # dc(1), install(1), sort(1), fetch(1) need libcrypto
 libcrypto = dependency('libcrypto', required: get_option('openssl'))
@@ -124,9 +124,6 @@ libssl = dependency('libssl', required: get_option('openssl'))
 
 # seq(1) needs libm
 libm = cc.find_library('m', required: true)
-
-# df(1) needs libxo
-libxo = dependency('libxo', required: true)
 
 # gzip needs zlib
 zlib = dependency('zlib', required: get_option('zlib'))
@@ -138,7 +135,7 @@ bzip2 = cc.find_library('bz2', required: get_option('bzip2'))
 lzma = dependency('liblzma', required: get_option('lzma'))
 
 # gzip needs zstd
-zstd = dependency('libzstd', required: get_option('zstd'))
+#zstd = dependency('libzstd', required: get_option('zstd'))
 
 # su needs pam
 pam = dependency('pam', required: get_option('pam'))
@@ -158,5 +155,5 @@ endif
 
 # Include all of the relevant subdirectories
 subdir('include')
-subdir('src.freebsd')
+subdir('src.netbsd')
 subdir('src.custom')

@@ -39,7 +39,6 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/stat.h>
-#include <libutil.h>
 #include <linux/falloc.h>
 
 #ifndef SEEK_DATA

@@ -505,7 +505,7 @@ get_some_switches(void)
 	Argv_last = Argv;
 	if (!Argc)
 		return;
-	optreset = optind = 1;
+	optind = 0;
 	while ((ch = getopt_long(Argc, Argv, options, longopts, NULL)) != -1) {
 		switch (ch) {
 		case 'b':

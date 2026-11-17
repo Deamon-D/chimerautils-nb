@@ -75,6 +75,10 @@ static const char sccsid[] = "@(#)main.c	8.2 (Berkeley) 1/3/94";
 #include "defs.h"
 #include "extern.h"
 
+#ifndef REG_GNU
+#define REG_GNU 0
+#endif
+
 /*
  * Linked list of units (strings and files) to be compiled
  */

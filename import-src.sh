@@ -52,6 +52,9 @@ copy_cmd() {
     [ -d ${rp}/test ] && rm -rf ${rp}/test
     [ -d ${rp}/TEST ] && rm -rf ${rp}/TEST
 
+    # Drop the CVS directories
+    [ -d ${rp}/CVS ] && rm -rf ${rp}/CVS
+
     # Rename the upstream Makefile for later manual checking.  We don't
     # commit these to our tree, but just look at them when rebasing and
     # pick up any rule changes to put in our Makefile.am files.
@@ -239,7 +242,7 @@ cp -p usr/src/lib/libc/gen/setmode.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/string/strmode.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/vis.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/unvis.c ${CWD}/src.orig/compat
-cp -p usr/src/libutil/strpct.c ${CWD}/src.orig/compat
+cp -p usr/src/lib/libutil/strpct.c ${CWD}/src.orig/compat
 cp -p usr/src/include/vis.h ${CWD}/src.orig/include
 
 # 'util' is our public library with stuff that may be missing in libc
@@ -287,6 +290,8 @@ cp -p usr/src/include/tzfile.h ${CWD}/src.netbsd/include
 # These are not used
 rm -rf ${CWD}/src.orig/coreutils/sort/nls
 rm -rf ${CWD}/src.netbsd/coreutils/sort/nls
+rm -rf ${CWD}/src.orig/grep/nls
+rm -rf ${CWD}/src.netbsd/grep/nls
 
 # fix sh generator permissions
 chmod 755 ${CWD}/src.orig/sh/mkbuiltins
@@ -334,9 +339,6 @@ for sc in ${CWD}/src.netbsd/findutils/locate/locate/*.sh; do
     mv "$sc" "$sc.in"
 done
 
-# remove rpmatch header which is our own and applied by patch
-rm -f ${CWD}/src.netbsd/include/rpmatch.h
-
 # awk manpage
 #cp -p usr/src/usr.bin/awk/awk.1 ${CWD}/src.orig/awk
 #cp -p usr/src/usr.bin/awk/awk.1 ${CWD}/src.netbsd/awk
@@ -353,14 +355,10 @@ rm -rf ${CWD}/src.netbsd/miscutils/calendar/calendars/CVS
 
 cd ${CWD}/patches
 
-#for p in *.patch; do
-#    [ -f "$p" ] || continue
-#    patch -d ${CWD}/src.netbsd -p1 < $p
-#done
-
-# fix up permissions
-#chmod 755 ${CWD}/src.netbsd/nvi/*.sh
-#chmod 755 ${CWD}/src.netbsd/libfetch/*.sh
+for p in *.patch; do
+    [ -f "$p" ] || continue
+    patch -d ${CWD}/src.netbsd -p1 < $p
+done
 
 # Clean up
 rm -rf ${TMPDIR}

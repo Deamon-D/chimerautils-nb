@@ -490,6 +490,64 @@
  		return (-1);
  	}
  	/* As above, initialize the first 256 entries in the table. */
+--- src.orig/m4/eval.c
++++ src.netbsd/m4/eval.c
+@@ -182,17 +182,17 @@
+ 	{
+ 		int base = 10;
+ 		int maxdigits = 0;
+-		int e;
++		const char *errstr = NULL;
+ 
+ 		if (argc > 3 && *argv[3] != '\0') {
+-			base = strtoi(argv[3], NULL, 0, 2, 36, &e);
+-			if (e) {
++			base = strtonum(argv[3], 2, 36, &errstr);
++			if (errstr != NULL) {
+ 				m4errx(1, "expr: base %s invalid.", argv[3]);
+ 			}
+ 		}
+ 		if (argc > 4) {
+-			maxdigits = strtoi(argv[4], NULL, 0, 0, INT_MAX, &e);
+-			if (e) {
++			maxdigits = strtonum(argv[4], 0, INT_MAX, &errstr);
++			if (errstr != NULL) {
+ 				m4errx(1, "expr: maxdigits %s invalid.", argv[4]);
+ 			}
+ 		}
+@@ -857,9 +857,9 @@
+ 
+ 	if (argc > 2) {
+ 		for (ind = 2; ind < argc; ind++) {
+-			int e;
+-			n = strtoi(argv[ind], NULL, 0, 1, INT_MAX, &e);
+-			if (e) {
++			const char *errstr = NULL;
++			n = strtonum(argv[ind], 1, INT_MAX, &errstr);
++			if (errstr != NULL) {
+ 				if (errno == EINVAL && mimic_gnu)
+ 					getdivfile(argv[ind]);
+ 			} else {
+--- src.orig/m4/tokenizer.l
++++ src.netbsd/m4/tokenizer.l
+@@ -28,8 +28,6 @@
+ 
+ extern int mimic_gnu;
+ extern int32_t yylval;
+-extern int yylex(void);
+-extern int yywrap(void);
+ 
+ int32_t number(void);
+ int32_t parse_radix(void);
+@@ -46,6 +44,8 @@
+ dec	[1-9][0-9]*
+ radix	0[rR][0-9]+:[0-9a-zA-Z]+
+ 
++%option noyywrap
++
+ %%
+ {ws}			{/* just skip it */}
+ {hex}|{oct}|{dec}	{ yylval = number(); return(NUMBER); }
 --- src.orig/miscutils/calendar/calendar.c
 +++ src.netbsd/miscutils/calendar/calendar.c
 @@ -55,6 +55,7 @@

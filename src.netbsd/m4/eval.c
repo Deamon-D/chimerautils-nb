@@ -182,17 +182,17 @@ expand_builtin(const char *argv[], int argc, int td)
 	{
 		int base = 10;
 		int maxdigits = 0;
-		int e;
+		const char *errstr = NULL;
 
 		if (argc > 3 && *argv[3] != '\0') {
-			base = strtoi(argv[3], NULL, 0, 2, 36, &e);
-			if (e) {
+			base = strtonum(argv[3], 2, 36, &errstr);
+			if (errstr != NULL) {
 				m4errx(1, "expr: base %s invalid.", argv[3]);
 			}
 		}
 		if (argc > 4) {
-			maxdigits = strtoi(argv[4], NULL, 0, 0, INT_MAX, &e);
-			if (e) {
+			maxdigits = strtonum(argv[4], 0, INT_MAX, &errstr);
+			if (errstr != NULL) {
 				m4errx(1, "expr: maxdigits %s invalid.", argv[4]);
 			}
 		}
@@ -857,9 +857,9 @@ doundiv(const char *argv[], int argc)
 
 	if (argc > 2) {
 		for (ind = 2; ind < argc; ind++) {
-			int e;
-			n = strtoi(argv[ind], NULL, 0, 1, INT_MAX, &e);
-			if (e) {
+			const char *errstr = NULL;
+			n = strtonum(argv[ind], 1, INT_MAX, &errstr);
+			if (errstr != NULL) {
 				if (errno == EINVAL && mimic_gnu)
 					getdivfile(argv[ind]);
 			} else {

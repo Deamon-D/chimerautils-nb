@@ -28,8 +28,6 @@ __RCSID("$NetBSD: tokenizer.l,v 1.6 2012/03/20 20:34:58 matt Exp $");
 
 extern int mimic_gnu;
 extern int32_t yylval;
-extern int yylex(void);
-extern int yywrap(void);
 
 int32_t number(void);
 int32_t parse_radix(void);
@@ -45,6 +43,8 @@ hex	0[xX][0-9a-fA-F]+
 oct	0[0-7]*
 dec	[1-9][0-9]*
 radix	0[rR][0-9]+:[0-9a-zA-Z]+
+
+%option noyywrap
 
 %%
 {ws}			{/* just skip it */}

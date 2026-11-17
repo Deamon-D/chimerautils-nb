@@ -164,7 +164,6 @@ search_utmp(char *user, char *mytty, uid_t myuid, gid_t saved_egid)
 	struct passwd *pw = getpwnam(user);
 	if (pw == NULL)
 		errx(1, "%s: unknown user", user);
-
 	uid = pw->pw_uid;
 	(void)getutentries(NULL, &ep);
 

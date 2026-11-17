@@ -1,4 +1,4 @@
-/*	$NetBSD: strpct.c,v 1.7 2025/12/14 16:28:05 kre Exp $	*/
+/*	$NetBSD: strpct.c,v 1.6.2.1 2025/12/20 13:51:18 martin Exp $	*/
 
 /*-
  * Copyright (c) 1998, 2025 The NetBSD Foundation, Inc.
@@ -40,7 +40,7 @@
  */
 
 #include <sys/cdefs.h>
-__RCSID("$NetBSD: strpct.c,v 1.7 2025/12/14 16:28:05 kre Exp $");
+__RCSID("$NetBSD: strpct.c,v 1.6.2.1 2025/12/20 13:51:18 martin Exp $");
 
 #include <limits.h>
 #include <locale.h>

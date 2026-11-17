@@ -994,7 +994,7 @@ err:		memset(sbp, 0, sizeof(*sbp));
 static FTSENT *
 fts_sort(FTS *sp, FTSENT *head, size_t nitems)
 {
-	void *new;
+	void *new = NULL;
 	FTSENT **ap, *p;
 
 	_DIAGASSERT(sp != NULL);
@@ -1010,7 +1010,7 @@ fts_sort(FTS *sp, FTSENT *head, size_t nitems)
 	if (nitems > sp->fts_nitems) {
 		new = reallocarray(sp->fts_array,
 		    nitems + 40, sizeof(*sp->fts_array));
-		if (new != NULL)
+		if (new == NULL)
 			return head;
 		sp->fts_array = new;
 		sp->fts_nitems = fts_nitems_truncate(nitems + 40);

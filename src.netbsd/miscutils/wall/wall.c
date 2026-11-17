@@ -59,7 +59,6 @@ __RCSID("$NetBSD: wall.c,v 1.30 2015/11/21 14:59:51 christos Exp $");
 #include <pwd.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <util.h>
@@ -67,8 +66,8 @@ __RCSID("$NetBSD: wall.c,v 1.30 2015/11/21 14:59:51 christos Exp $");
 
 #include "utmpentry.h"
 #include "term_chk.h"
-#include "extern.h"
 
+extern char *ttymsg(struct iovec *, int, const char *, int);
 static void	addgroup(char *);
 static void	makemsg(struct iovec *, const char *, int);
 __dead static void	usage(void);

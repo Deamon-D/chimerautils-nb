@@ -110,10 +110,8 @@ main(int argc, char *argv[])
 		if (sysctl(mib, 2, std, &len, NULL, 0) == -1)
 			err(1, "sysctl: user.cs_path");
 #else
-		len = strlen(_PATH_STDPATH);
-		if ((std = malloc(len)) == NULL)
+		if ((std = strdup(_PATH_STDPATH)) == NULL)
 			err(1, NULL);
-		strlcpy(std, _PATH_STDPATH, len);
 #endif
 	}
 

@@ -316,7 +316,9 @@ getentryx(struct utmpentry *e, struct utmpx *up)
 	memcpy(e->line, up->ut_line, sizeof(up->ut_line));
 	memcpy(e->host, up->ut_host, sizeof(up->ut_host));
 
-	e->tv = up->ut_tv;
+	e->tv.tv_sec = up->ut_tv.tv_sec;
+	e->tv.tv_usec = up->ut_tv.tv_usec;
+
 	e->pid = up->ut_pid;
 	e->term = up->ut_exit.e_termination;
 	e->exit = up->ut_exit.e_exit;

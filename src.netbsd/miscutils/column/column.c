@@ -262,15 +262,16 @@ static void
 input(FILE *fp)
 {
 	static int maxentry;
-	int len;
-	size_t blen;
+	ssize_t len;
+	size_t cap = 0;
+	char *line = NULL;
 	char *p, *buf;
 	char **n;
 
 	if (!list)
 		list = ecalloc((maxentry = DEFNUM), sizeof(*list));
-	while ((buf = fgetln(fp, &blen)) != NULL) {
-		buf = estrndup(buf, blen);
+	while ((len = getline(&line, &cap, fp)) != -1) {
+		buf = estrndup(line, len);
 		for (p = buf; *p && isspace((unsigned char)*p); ++p);
 		if (!*p) {
 			free(buf);
@@ -294,6 +295,8 @@ input(FILE *fp)
 		}
 		list[entries++] = buf;
 	}
+
+	free(line);
 }
 
 static void

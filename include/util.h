@@ -34,6 +34,7 @@
 #define _UTIL_H
 
 #include <stdlib.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>

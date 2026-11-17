@@ -390,8 +390,8 @@ setfile(const char *name, struct stat *fs)
 
 	fs->st_mode &= S_ISUID|S_ISGID|S_IRWXU|S_IRWXG|S_IRWXO;
 
-	TIMESPEC_TO_TIMEVAL(&tv[0], &fs->st_atimespec);
-	TIMESPEC_TO_TIMEVAL(&tv[1], &fs->st_mtimespec);
+	TIMESPEC_TO_TIMEVAL(&tv[0], &fs->st_atim);
+	TIMESPEC_TO_TIMEVAL(&tv[1], &fs->st_mtim);
 	if (utimes(name, tv))
 		cwarn("utimes: %s", name);
 
@@ -414,8 +414,10 @@ setfile(const char *name, struct stat *fs)
 	 * file had any flags set; this avoids a warning on file-systems that
 	 * do not support flags.
 	 */
+#if 0
 	if (fs->st_flags != 0 && chflags(name, fs->st_flags))
 		cwarn("chflags: %s", name);
+#endif
 }
 
 static int

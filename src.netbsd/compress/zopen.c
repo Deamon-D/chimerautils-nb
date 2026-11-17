@@ -203,8 +203,8 @@ static code_int	getcode(struct s_zstate *);
 static int	output(struct s_zstate *, code_int);
 static int	zclose(void *);
 FILE	       *zopen(const char *, const char *, int);
-static int	zread(void *, char *, int);
-static int	zwrite(void *, const char *, int);
+static ssize_t	zread(void *, char *, size_t);
+static ssize_t	zwrite(void *, const char *, size_t);
 
 /*-
  * Algorithm from "A Technique for High Performance Data Compression",
@@ -232,8 +232,8 @@ static int	zwrite(void *, const char *, int);
  * file size for noticeable speed improvement on small files.  Please direct
  * questions about this implementation to ames!jaw.
  */
-static int
-zwrite(void *cookie, const char *wbp, int num)
+static ssize_t
+zwrite(void *cookie, const char *wbp, size_t num)
 {
 	code_int i;
 	int c, disp;
@@ -452,8 +452,8 @@ output(struct s_zstate *zs, code_int ocode)
  * compressed file.  The tables used herein are shared with those of the
  * compress() routine.  See the definitions above.
  */
-static int
-zread(void *cookie, char *rbp, int num)
+static ssize_t
+zread(void *cookie, char *rbp, size_t num)
 {
 	u_int count;
 	struct s_zstate *zs;
@@ -654,6 +654,7 @@ FILE *
 zopen(const char *fname, const char *mode, int bits)
 {
 	struct s_zstate *zs;
+	cookie_io_functions_t zfuncs;
 
 	if ((mode[0] != 'r' && mode[0] != 'w') || mode[1] != '\0' ||
 	    bits < 0 || bits > BITS) {
@@ -689,10 +690,18 @@ zopen(const char *fname, const char *mode, int bits)
 	switch (*mode) {
 	case 'r':
 		zmode = 'r';
-		return (funopen(zs, zread, NULL, NULL, zclose));
+		zfuncs.read = zread;
+		zfuncs.write = NULL;
+		zfuncs.seek = NULL;
+		zfuncs.close = zclose;
+		return (fopencookie(zs, "r", zfuncs));
 	case 'w':
 		zmode = 'w';
-		return (funopen(zs, NULL, zwrite, NULL, zclose));
+		zfuncs.read = NULL;
+		zfuncs.write = zwrite;
+		zfuncs.seek = NULL;
+		zfuncs.close = zclose;
+		return (fopencookie(zs, "w", zfuncs));
 	}
 	/* NOTREACHED */
 	return (NULL);

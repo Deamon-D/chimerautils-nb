@@ -1,0 +1,939 @@
+--- src.orig/apply/apply.c
++++ src.netbsd/apply/apply.c
+@@ -207,9 +207,9 @@
+ {
+ 	static const char *name, *shell;
+ 	int status;
+-	int omask;
+ 	pid_t pid;
+ 	sig_t intsave, quitsave;
++	sigset_t nset, oset;
+ 
+ 	if (shell == NULL) {
+ 		if ((shell = getenv("SHELL")) == NULL)
+@@ -225,7 +225,10 @@
+ 		return(1);
+ 	}
+ 
+-	omask = sigblock(sigmask(SIGCHLD));
++	sigemptyset(&nset);
++	sigemptyset(&oset);
++	sigaddset(&nset, SIGCHLD);
++	sigprocmask(SIG_BLOCK, &nset, &oset);
+ 	switch (pid = vfork()) {
+ 	case -1:
+ 		/* error */
+@@ -233,7 +236,7 @@
+ 		/*NOTREACHED*/
+ 	case 0:
+ 		/* child */
+-		(void)sigsetmask(omask);
++		sigprocmask(SIG_SETMASK, &nset, &oset);
+ 		(void)execl(shell, name, "-c", command, (char *)NULL);
+ 		warn("%s", shell);
+ 		_exit(1);
+@@ -243,7 +246,7 @@
+ 		intsave = signal(SIGINT, SIG_IGN);
+ 		quitsave = signal(SIGQUIT, SIG_IGN);
+ 		pid = waitpid(pid, &status, 0);
+-		(void)sigsetmask(omask);
++		sigprocmask(SIG_SETMASK, &oset, NULL);
+ 		(void)signal(SIGINT, intsave);
+ 		(void)signal(SIGQUIT, quitsave);
+ 		return pid == -1 ? -1 : status;
+--- src.orig/compat/parsedate.y
++++ src.netbsd/compat/parsedate.y
+@@ -819,7 +819,7 @@
+ 	    tm.tm_isdst = 0;	/* hence cannot be summer time */
+ 	    otm = tm;
+ 	    errno = 0;
+-	    result = mktime_z(NULL, &tm);
++	    result = timegm(&tm);
+ 	    if (result != -1 || errno == 0) {
+ 		    result += Timezone * 60;
+ 		    if (DSTmode == DSTon)	/* if specified sumer time */
+--- src.orig/compat/setmode.c
++++ src.netbsd/compat/setmode.c
+@@ -164,9 +164,10 @@
+ 		BITCMD *newset;						\
+ 		setlen += SET_LEN_INCR;					\
+ 		newset = saveset;					\
+-		errno = reallocarr(&newset, setlen, sizeof(*newset));	\
+-		if (errno)						\
++		new = reallocarray(newset, setlen, sizeof(*newset));	\
++		if (new != NULL)					\
+ 			goto out;					\
++		new = newset;						\
+ 		set = newset + (set - saveset);				\
+ 		saveset = newset;					\
+ 		endset = newset + (setlen - 2);				\
+@@ -187,6 +188,7 @@
+ 	long lval;
+ 	int equalopdone = 0;	/* pacify gcc */
+ 	int setlen;
++	void *new;
+ 
+ 	if (!*p) {
+ 		errno = EINVAL;
+@@ -207,9 +209,10 @@
+ 
+ 	setlen = SET_LEN + 2;
+ 	set = NULL;
+-	errno = reallocarr(&set, setlen, sizeof(*set));
+-	if (errno)
++	new = reallocarray(set, setlen, sizeof(*set));
++	if (new != NULL)
+ 		return NULL;
++	new = set;
+ 	saveset = set;
+ 	endset = set + (setlen - 2);
+ 
+--- src.orig/compat/vis.c
++++ src.netbsd/compat/vis.c
+@@ -155,7 +155,9 @@
+ #define __CTASSERT(x, y)        typedef char __assert ## y[(x) ? 1 : -1]
+ #endif
+ #endif /* __FreeBSD__ */
++#ifdef CTASSERT
+ CTASSERT(MB_LEN_MAX <= sizeof(uint64_t));
++#endif
+ #endif /* !__NetBSD__ */
+ #endif
+ 
+--- src.orig/compress/zopen.3
++++ src.netbsd/compress/zopen.3
+@@ -107,7 +107,7 @@
+ arguments specified to
+ .Fn zopen
+ were invalid.
+-.It Bq Er EFTYPE
++.It Bq Er EINVAL
+ The compressed file starts with an invalid header, or the compressed
+ file is compressed with more bits than can be handled.
+ .El
+--- src.orig/compress/zopen.c
++++ src.netbsd/compress/zopen.c
+@@ -479,7 +479,7 @@
+ 	if (fread(header,
+ 	    sizeof(char), sizeof(header), fp) != sizeof(header) ||
+ 	    memcmp(header, magic_header, sizeof(magic_header)) != 0) {
+-		errno = EFTYPE;
++		errno = EINVAL;
+ 		return (-1);
+ 	}
+ 	maxbits = header[2];	/* Set -b from file. */
+@@ -487,7 +487,7 @@
+ 	maxbits &= BIT_MASK;
+ 	maxmaxcode = 1L << maxbits;
+ 	if (maxbits > BITS || maxbits < 12) {
+-		errno = EFTYPE;
++		errno = EINVAL;
+ 		return (-1);
+ 	}
+ 	/* As above, initialize the first 256 entries in the table. */
+--- src.orig/coreutils/base64/base64.c
++++ src.netbsd/coreutils/base64/base64.c
+@@ -144,7 +144,7 @@
+ 
+ 		pos = strchr(B64, c);
+ 		if (pos == NULL)
+-			return EFTYPE;
++			return EINVAL;
+ 
+ 		b = (uint8_t)(pos - B64);
+ 
+@@ -180,7 +180,7 @@
+ 		switch (state) {
+ 		case 0:
+ 		case 1:
+-			return EFTYPE;
++			return EINVAL;
+ 		case 2:
+ 			while ((c = getc(fin)) != EOF) {
+ 				if (ignore && isspace(c))
+@@ -188,7 +188,7 @@
+ 				break;
+ 			}
+ 			if (c != '=')
+-				return EFTYPE;
++				return EINVAL;
+ 			/*FALLTHROUGH*/
+ 		case 3:
+ 			while ((c = getc(fin)) != EOF) {
+@@ -197,7 +197,7 @@
+ 				break;
+ 			}
+ 			if (c != EOF)
+-				return EFTYPE;
++				return EINVAL;
+ 			return 0;
+ 		default:
+ 			abort();
+@@ -205,7 +205,7 @@
+ 	}
+ 
+ 	if (c != EOF || state != 0)
+-		return EFTYPE;
++		return EINVAL;
+ 
+ 	return 0;
+ }
+--- src.orig/coreutils/who/utmpentry.c
++++ src.netbsd/coreutils/who/utmpentry.c
+@@ -50,6 +50,9 @@
+ 
+ #include "utmpentry.h"
+ 
++#ifndef _PATH_UTMPX
++#define _PATH_UTMPX	"/var/run/utmp"
++#endif
+ 
+ /* Fail the compile if x is not true, by constructing an illegal type. */
+ #define COMPILE_ASSERT(x) /*LINTED null effect */ \
+@@ -125,8 +128,8 @@
+ 			warn("Cannot stat `%s'", sfname);
+ 			what &= ~1;
+ 		} else {
+-			if (timespeccmp(&st.st_mtimespec, &utmpxtime, >))
+-				utmpxtime = st.st_mtimespec;
++			if (timespeccmp(&st.st_mtim, &utmpxtime, >))
++				utmpxtime = st.st_mtim;
+ 			else
+ 				what &= ~1;
+ 		}
+@@ -139,8 +142,8 @@
+ 			warn("Cannot stat `%s'", sfname);
+ 			what &= ~2;
+ 		} else {
+-			if (timespeccmp(&st.st_mtimespec, &utmptime, >))
+-				utmptime = st.st_mtimespec;
++			if (timespeccmp(&st.st_mtim, &utmptime, >))
++				utmptime = st.st_mtim;
+ 			else
+ 				what &= ~2;
+ 		}
+@@ -313,7 +316,9 @@
+ 	memcpy(e->line, up->ut_line, sizeof(up->ut_line));
+ 	memcpy(e->host, up->ut_host, sizeof(up->ut_host));
+ 
+-	e->tv = up->ut_tv;
++	e->tv.tv_sec = up->ut_tv.tv_sec;
++	e->tv.tv_usec = up->ut_tv.tv_usec;
++
+ 	e->pid = up->ut_pid;
+ 	e->term = up->ut_exit.e_termination;
+ 	e->exit = up->ut_exit.e_exit;
+--- src.orig/coreutils/who/utmpentry.h
++++ src.netbsd/coreutils/who/utmpentry.h
+@@ -31,11 +31,16 @@
+ 
+ #if defined(SUPPORT_UTMPX)
+ # include <utmpx.h>
++#endif
++#if defined(SUPPORT_UTMP)
++# include <utmp.h>
++#endif
++
++#if defined(_UTX_USERSIZE)
+ # define WHO_NAME_LEN		_UTX_USERSIZE
+ # define WHO_LINE_LEN		_UTX_LINESIZE
+ # define WHO_HOST_LEN		_UTX_HOSTSIZE
+-#elif defined(SUPPORT_UTMP)
+-# include <utmp.h>
++#elif defined(UT_NAMESIZE)
+ # define WHO_NAME_LEN		UT_NAMESIZE
+ # define WHO_LINE_LEN		UT_LINESIZE
+ # define WHO_HOST_LEN		UT_HOSTSIZE
+--- src.orig/dbcompat/btree/bt_open.c
++++ src.netbsd/dbcompat/btree/bt_open.c
+@@ -326,7 +326,7 @@
+ einval:	errno = EINVAL;
+ 	goto err;
+ 
+-eftype:	errno = EFTYPE;
++eftype:	errno = EINVAL;
+ 	goto err;
+ 
+ err:	if (t) {
+--- src.orig/dbcompat/btree/btree.h
++++ src.netbsd/dbcompat/btree/btree.h
+@@ -43,6 +43,7 @@
+ #define	F_CLR(p, f)	(p)->flags &= ~(f)
+ #define	F_ISSET(p, f)	((p)->flags & (f))
+ 
++#include <stdint.h>
+ #include <mpool.h>
+ 
+ #define	DEFMINKEYPAGE	(2)		/* Minimum keys per page */
+--- src.orig/dbcompat/db.c
++++ src.netbsd/dbcompat/db.c
+@@ -62,8 +62,8 @@
+ 
+ #define	DB_FLAGS	(DB_LOCK | DB_SHMEM | DB_TXN)
+ #define	USE_OPEN_FLAGS							\
+-	(O_CREAT | O_EXCL | O_EXLOCK | O_NONBLOCK | O_RDONLY |		\
+-	 O_RDWR | O_SHLOCK | O_TRUNC | O_CLOEXEC)
++	(O_CREAT | O_EXCL | O_NONBLOCK | O_RDONLY |		\
++	 O_RDWR | O_TRUNC | O_CLOEXEC)
+ 
+ 	if ((flags & ~(USE_OPEN_FLAGS | DB_FLAGS)) == 0)
+ 		switch (type) {
+--- src.orig/dbcompat/mpool.c
++++ src.netbsd/dbcompat/mpool.c
+@@ -253,7 +253,7 @@
+ 
+ 	if ((nr = pread(mp->fd, bp->page, (size_t)mp->pagesize, off)) != (int)mp->pagesize) {
+ 		if (nr > 0) {
+-			errno = EFTYPE;
++			errno = EINVAL;
+ 			return NULL;
+ 		} else if (nr == 0) {
+ 			/*
+--- src.orig/dbinclude/db.h
++++ src.netbsd/dbinclude/db.h
+@@ -34,7 +34,7 @@
+ #ifndef _DB_H_
+ #define	_DB_H_
+ 
+-#include <sys/types.h>
++#include <stdint.h>
+ #include <sys/cdefs.h>
+ 
+ #include <limits.h>
+@@ -231,7 +231,7 @@
+ 
+ #ifdef __DBINTERFACE_PRIVATE
+ 
+-#define _DBFIT(a, t) _DIAGASSERT(__type_fit(t, a))
++#define _DBFIT(a, t) /* void */
+ 
+ DB	*__bt_open(const char *, int, mode_t, const BTREEINFO *, int);
+ DB	*__hash_open(const char *, int, mode_t, const HASHINFO *, int);
+--- src.orig/ed/ed.h
++++ src.netbsd/ed/ed.h
+@@ -33,7 +33,7 @@
+ # include <sys/param.h>		/* for MAXPATHLEN */
+ #endif
+ #include <errno.h>
+-#if defined(sun) || defined(__NetBSD__) || defined(__APPLE__)
++#if defined(sun) || defined(__NetBSD__) || defined(__APPLE__) || defined(__linux__)
+ # include <limits.h>
+ #endif
+ #include <regex.h>
+--- src.orig/ed/undo.c
++++ src.netbsd/ed/undo.c
+@@ -36,6 +36,7 @@
+ #endif
+ #endif /* not lint */
+ 
++#include <errno.h>
+ #include "ed.h"
+ 
+ 
+@@ -48,17 +49,18 @@
+ undo_t *
+ push_undo_stack(int type, long from, long to)
+ {
+-	int err;
++	void *new = NULL;
+ 
+ 	if (u_p < usize ||
+-	    (err = reallocarr(&ustack, usize += USIZE, sizeof(undo_t))) == 0) {
++	    (new = reallocarray(ustack, usize += USIZE, sizeof(undo_t))) == 0) {
++		ustack = new;
+ 		ustack[u_p].type = type;
+ 		ustack[u_p].t = get_addressed_line_node(to);
+ 		ustack[u_p].h = get_addressed_line_node(from);
+ 		return ustack + u_p++;
+ 	}
+ 	/* out of memory - release undo stack */
+-	fprintf(stderr, "%s\n", strerror(err));
++	fprintf(stderr, "%s\n", strerror(errno));
+ 	seterrmsg("out of memory");
+ 	clear_undo_stack();
+ 	free(ustack);
+--- src.orig/gencat/gencat.c
++++ src.netbsd/gencat/gencat.c
+@@ -95,6 +95,29 @@
+ #ifndef NL_MSGMAX
+ #define NL_MSGMAX 2048
+ #endif
++#ifndef _NLS_MAGIC
++#define _NLS_MAGIC	0xff88ff89
++#endif
++
++struct _nls_cat_hdr {
++	int32_t __magic;
++	int32_t __nsets;
++	int32_t __mem;
++	int32_t __msg_hdr_offset;
++	int32_t __msg_txt_offset;
++};
++
++struct _nls_set_hdr {
++	int32_t __setno;	/* set number: 0 < x <= NL_SETMAX */
++	int32_t __nmsgs;	/* number of messages in the set  */
++	int32_t __index;	/* index of first msg_hdr in msg_hdr table */
++};
++
++struct _nls_msg_hdr {
++	int32_t __msgno;	/* msg number: 0 < x <= NL_MSGMAX */
++	int32_t __msglen;
++	int32_t __offset;
++};
+ 
+ struct _msgT {
+ 	long    msgId;
+--- src.orig/gzip/zuncompress.c
++++ src.netbsd/gzip/zuncompress.c
+@@ -238,7 +238,7 @@
+ 	if (fread(header + i, 1, sizeof(header) - i, zs->zs_fp) !=
+ 		  sizeof(header) - i ||
+ 	    memcmp(header, magic_header, sizeof(magic_header)) != 0) {
+-		errno = EFTYPE;
++		errno = EINVAL;
+ 		return (-1);
+ 	}
+ 	total_compressed_bytes = 0;
+@@ -247,7 +247,7 @@
+ 	zs->zs_maxbits &= BIT_MASK;
+ 	zs->zs_maxmaxcode = 1L << zs->zs_maxbits;
+ 	if (zs->zs_maxbits > BITS || zs->zs_maxbits < 12) {
+-		errno = EFTYPE;
++		errno = EINVAL;
+ 		return (-1);
+ 	}
+ 	/* As above, initialize the first 256 entries in the table. */
+--- src.orig/miscutils/calendar/calendar.c
++++ src.netbsd/miscutils/calendar/calendar.c
+@@ -55,6 +55,7 @@
+ #include <errno.h>
+ #include <fcntl.h>
+ #include <pwd.h>
++#include <grp.h>
+ #include <stdbool.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+--- src.orig/miscutils/col/col.c
++++ src.netbsd/miscutils/col/col.c
+@@ -139,7 +139,7 @@
+ 	int this_line;			/* line l points to */
+ 	int nflushd_lines;		/* number of lines that were flushed */
+ 	int adjust, opt, warned, width;
+-	int e;
++	const char *errstr = NULL;
+ 
+ 	(void)setlocale(LC_CTYPE, "");
+ 
+@@ -157,11 +157,11 @@
+ 			compress_spaces = 1;
+ 			break;
+ 		case 'l':		/* buffered line count */
+-			max_bufd_lines = (int)strtoi(optarg, NULL, 0, 1,
+-			    (INT_MAX - BUFFER_MARGIN) / 2, &e) * 2;
+-			if (e)
+-				errc(EXIT_FAILURE, e, "bad -l argument `%s'",
+-				    optarg);
++			max_bufd_lines = strtonum(optarg, 1,
++			    (INT_MAX - BUFFER_MARGIN) / 2, &errstr) * 2;
++			if (errstr != NULL)
++				errx(1, "bad -l argument, %s: %s", errstr, 
++					optarg);
+ 			break;
+ 		case 'p':		/* pass unknown control sequences */
+ 			pass_unknown_seqs = 1;
+--- src.orig/miscutils/column/column.c
++++ src.netbsd/miscutils/column/column.c
+@@ -262,15 +262,16 @@
+ input(FILE *fp)
+ {
+ 	static int maxentry;
+-	int len;
+-	size_t blen;
++	ssize_t len;
++	size_t cap = 0;
++	char *line = NULL;
+ 	char *p, *buf;
+ 	char **n;
+ 
+ 	if (!list)
+ 		list = ecalloc((maxentry = DEFNUM), sizeof(*list));
+-	while ((buf = fgetln(fp, &blen)) != NULL) {
+-		buf = estrndup(buf, blen);
++	while ((len = getline(&line, &cap, fp)) != -1) {
++		buf = estrndup(line, len);
+ 		for (p = buf; *p && isspace((unsigned char)*p); ++p);
+ 		if (!*p) {
+ 			free(buf);
+@@ -294,6 +295,8 @@
+ 		}
+ 		list[entries++] = buf;
+ 	}
++
++	free(line);
+ }
+ 
+ static void
+--- src.orig/miscutils/kill/kill.c
++++ src.netbsd/miscutils/kill/kill.c
+@@ -106,9 +106,9 @@
+ 				numsig = signum(sn);
+ 				if (numsig >= 128)
+ 					numsig -= 128;
+-				if (numsig == 0 || signalnext(numsig) == -1)
++				if (numsig == 0 || numsig >= _NSIG)
+ 					nosig(sn);
+-				sn = signalname(numsig);
++				sn = signum_to_signame(numsig);
+ 				if (sn == NULL)
+ 					errx(EXIT_FAILURE,
+ 					   "unknown signal number: %d", numsig);
+@@ -132,7 +132,7 @@
+ 			}
+ 			if (strcmp(sn, "0") == 0)
+ 				numsig = 0;
+-			else if ((numsig = signalnumber(sn)) == 0) {
++			else if ((numsig = signame_to_signum(sn)) == 0) {
+ 				if (sn != argv[0])
+ 					goto trysignal;
+ 				nosig(sn);
+@@ -153,14 +153,14 @@
+ 		default:
+  trysignal:
+ 			sn = *argv + 1;
+-			if (((numsig = signalnumber(sn)) == 0)) {
++			if (((numsig = signame_to_signum(sn)) == 0)) {
+ 				if (isdigit((unsigned char)*sn))
+ 					numsig = signum(sn);
+ 				else
+ 					nosig(sn);
+ 			}
+ 
+-			if (numsig != 0 && signalnext(numsig) == -1)
++			if (numsig != 0 && numsig >= _NSIG)
+ 				nosig(sn);
+ 			argc--, argv++;
+ 			break;
+@@ -286,8 +286,8 @@
+ 	if (posix && pad)
+ 		pad = 1;
+ 
+-	for (sig = 0; (sig = signalnext(sig)) != 0; ) {
+-		name = signalname(sig);
++	for (sig = 0; sig < _NSIG; sig++) {
++		name = signum_to_signame(sig);
+ 		if (name == NULL)
+ 			continue;
+ 
+--- src.orig/miscutils/logger/logger.c
++++ src.netbsd/miscutils/logger/logger.c
+@@ -48,6 +48,7 @@
+ #include <stdio.h>
+ #include <ctype.h>
+ #include <string.h>
++#include <stdarg.h>
+ #include <err.h>
+ 
+ #define	SYSLOG_NAMES
+@@ -55,6 +56,7 @@
+ 
+ static int	decode(const char *, const CODE *);
+ static int	pencode(char *);
++static void	syslogp(int, const char *, const char *, const char *, ...);
+ __dead static void	usage(void);
+ 
+ /*
+@@ -149,6 +151,23 @@
+ 	/* NOTREACHED */
+ }
+ 
++static void
++syslogp(int priority, const char *msgid, const char *sd,
++    const char *fmt, ...)
++{
++    char message[4096];
++    va_list ap;
++
++    va_start(ap, fmt);
++    vsnprintf(message, sizeof(message), fmt, ap);
++    va_end(ap);
++
++    syslog(priority, "%s %s %s",
++        msgid != NULL ? msgid : "-",
++        sd != NULL ? sd : "-",
++        message);
++}
++
+ /*
+  *  Decode a symbolic name to a numeric value
+  */
+--- src.orig/miscutils/rev/rev.c
++++ src.netbsd/miscutils/rev/rev.c
+@@ -55,6 +55,46 @@
+ 
+ __dead static void usage(void);
+ 
++#define BUF_PIECE 1024
++
++static wchar_t *get_wln(FILE *f, size_t *len, wchar_t **sbuf, size_t *blen) {
++	wchar_t *wptr;
++	size_t wlen;
++
++	wptr = fgetws(*sbuf, *blen, f);
++	if (wptr) {
++		wlen = wcslen(wptr);
++		if (wptr[wlen - 1] == '\n' || feof(f)) {
++			*len = wlen;
++			return wptr;
++		}
++	} else {
++		return NULL;
++	}
++
++	for (;;) {
++		wchar_t *nptr;
++		*blen = wlen + BUF_PIECE;
++		*sbuf = realloc(*sbuf, *blen * sizeof(wchar_t));
++		if (!*sbuf) err(1, "realloc");
++
++		nptr = fgetws(*sbuf + wlen, BUF_PIECE, f);
++		if (!nptr) {
++			if (feof(f))
++				break;
++			return NULL;
++		}
++
++		wlen += wcslen(nptr);
++		if ((*sbuf)[wlen - 1] == '\n' || feof(f)) {
++			break;
++		}
++	}
++
++	*len = wlen;
++	return *sbuf;
++}
++
+ int
+ main(int argc, char *argv[])
+ {
+@@ -63,10 +103,14 @@
+ 	FILE *fp;
+ 	size_t len;
+ 	int ch, rval;
++	size_t bufl = BUF_PIECE;
++	wchar_t *buf = malloc(bufl * sizeof(wchar_t));
+ 
+ 	setlocale(LC_ALL, "");
+ 	setprogname(argv[0]);
+ 
++	if (!buf) err(1, "malloc");
++
+ 	while ((ch = getopt(argc, argv, "")) != -1)
+ 		switch(ch) {
+ 		case '?':
+@@ -90,7 +134,7 @@
+ 			}
+ 			filename = *argv++;
+ 		}
+-		while ((p = fgetwln(fp, &len)) != NULL) {
++		while ((p = get_wln(fp, &len, &buf, &bufl)) != NULL) {
+ 			if (p[len - 1] == L'\n')
+ 				--len;
+ 			t = p + len - 1;
+--- src.orig/miscutils/script/script.c
++++ src.netbsd/miscutils/script/script.c
+@@ -57,12 +57,21 @@
+ #include <signal.h>
+ #include <stdio.h>
+ #include <stdlib.h>
++#include <stdint.h>
+ #include <string.h>
+ #include <termios.h>
+ #include <time.h>
+ #include <tzfile.h>
+ #include <unistd.h>
+ #include <util.h>
++#include <pty.h>
++
++#ifndef bswap64
++#define bswap64(x) __builtin_bswap64(x)
++#endif
++#ifndef bswap32
++#define bswap32(x) __builtin_bswap32(x)
++#endif
+ 
+ #define	DEF_BUF	65536
+ 
+@@ -96,6 +105,7 @@
+ static void	scriptflush(int);
+ static void	record(FILE *, char *, size_t, int);
+ static void	consume(FILE *, off_t, char *, int);
++static int	login_tty(int);
+ __dead static void	playback(FILE *);
+ 
+ int
+@@ -215,6 +225,21 @@
+ 	done(cstat);
+ }
+ 
++static int
++login_tty(int fd)
++{
++
++	(void) setsid();
++	if (ioctl(fd, TIOCSCTTY, NULL) == -1)
++		return (-1);
++	(void) dup2(fd, STDIN_FILENO);
++	(void) dup2(fd, STDOUT_FILENO);
++	(void) dup2(fd, STDERR_FILENO);
++	if (fd != STDIN_FILENO && fd != STDOUT_FILENO && fd != STDERR_FILENO)
++		(void) close(fd);
++	return (0);
++}
++
+ /**
+  * wrapper around sigaction() because we want POSIX semantics:
+  * no auto-restarting of interrupted slow syscalls.
+--- src.orig/miscutils/time/time.c
++++ src.netbsd/miscutils/time/time.c
+@@ -43,7 +43,6 @@
+ #endif /* not lint */
+ 
+ #include <sys/types.h>
+-#include <sys/time.h>
+ #include <sys/resource.h>
+ #include <sys/wait.h>
+ #include <errno.h>
+@@ -53,6 +52,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
++#include <time.h>
+ 
+ #include "ext.h"
+ 
+--- src.orig/miscutils/time/xtime.c
++++ src.netbsd/miscutils/time/xtime.c
+@@ -6,4 +6,4 @@
+ #include <sys/time.h>
+ #include <sys/resource.h>
+ #include "ext.h"
+-#include "csh/time.c"
++#include "csh_time.c"
+--- src.orig/miscutils/wall/ttymsg.c
++++ src.netbsd/miscutils/wall/ttymsg.c
+@@ -45,6 +45,7 @@
+ #include <dirent.h>
+ #include <errno.h>
+ #include <fcntl.h>
++#include <limits.h>
+ #include <paths.h>
+ #include <signal.h>
+ #include <stdio.h>
+@@ -64,7 +65,7 @@
+ ttymsg(struct iovec *iov, int iovcnt, const char *line, int tmout)
+ {
+ 	static char errbuf[1024];
+-	char device[MAXNAMLEN];
++	char device[NAME_MAX];
+ 	const char *ptr;
+ 	int fd, ret;
+ 	struct iovec localiov[32];
+@@ -72,10 +73,6 @@
+ 	int forked = 0;
+ 	size_t cnt, left, wret;
+ 
+-	_DIAGASSERT(iov != NULL);
+-	_DIAGASSERT(iovcnt >= 0);
+-	_DIAGASSERT(line != NULL);
+-
+ 	if (iovcnt < 0) {
+ 		(void)snprintf(errbuf, sizeof(errbuf),
+ 		    "%s: negative iovcnt", __func__);
+--- src.orig/miscutils/wall/wall.c
++++ src.netbsd/miscutils/wall/wall.c
+@@ -49,7 +49,6 @@
+ 
+ #include <sys/param.h>
+ #include <sys/stat.h>
+-#include <sys/time.h>
+ #include <sys/uio.h>
+ 
+ #include <ctype.h>
+@@ -63,10 +62,12 @@
+ #include <string.h>
+ #include <unistd.h>
+ #include <util.h>
++#include <time.h>
+ 
+ #include "utmpentry.h"
+ #include "term_chk.h"
+ 
++extern char *ttymsg(struct iovec *, int, const char *, int);
+ static void	addgroup(char *);
+ static void	makemsg(struct iovec *, const char *, int);
+ __dead static void	usage(void);
+@@ -262,7 +263,7 @@
+ 
+ 	if (fstat(fd, &sbuf) == -1)
+ 		err(EXIT_FAILURE, "can't stat temporary file");
+-	if ((uint64_t)sbuf.st_size > SIZE_T_MAX)
++	if ((uint64_t)sbuf.st_size > SIZE_MAX)
+ 		errx(EXIT_FAILURE, "file too big");
+ 	mbufsize = (size_t)sbuf.st_size;
+ 	if (!(mbuf = malloc(mbufsize)))
+--- src.orig/miscutils/whereis/whereis.c
++++ src.netbsd/miscutils/whereis/whereis.c
+@@ -44,7 +44,6 @@
+ 
+ #include <sys/param.h>
+ #include <sys/stat.h>
+-#include <sys/sysctl.h>
+ 
+ #include <err.h>
+ #include <errno.h>
+@@ -52,6 +51,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
++#include <paths.h>
+ 
+ static void usage(void) __dead;
+ 
+@@ -60,7 +60,7 @@
+ {
+ 	struct stat sb;
+ 	size_t len;
+-	int ch, mib[2];
++	int ch;
+ 	char *p, *std, path[MAXPATHLEN];
+ 	const char *t;
+ 	int which = strcmp(getprogname(), "which") == 0;
+@@ -97,6 +97,7 @@
+  		if ((std = getenv("PATH")) == NULL)
+  			errx(1, "PATH environment variable is not set");
+ 	} else {
++#if 0
+ 		/* Retrieve the standard path. */
+ 		mib[0] = CTL_USER;
+ 		mib[1] = USER_CS_PATH;
+@@ -108,6 +109,10 @@
+ 			err(1, NULL);
+ 		if (sysctl(mib, 2, std, &len, NULL, 0) == -1)
+ 			err(1, "sysctl: user.cs_path");
++#else
++		if ((std = strdup(_PATH_STDPATH)) == NULL)
++			err(1, NULL);
++#endif
+ 	}
+ 
+ 	/* For each path, for each program... */
+--- src.orig/miscutils/write/write.c
++++ src.netbsd/miscutils/write/write.c
+@@ -95,8 +95,10 @@
+ 	case 3:
+ 		if (!strncmp(argv[2], _PATH_DEV, strlen(_PATH_DEV)))
+ 			argv[2] += strlen(_PATH_DEV);
+-		if (uid_from_user(argv[1], &uid) == -1)
++		struct passwd *pw = getpwnam(argv[1]);
++		if (pw == NULL)
+ 			errx(1, "%s: unknown user", argv[1]);
++		uid = pw->pw_uid;
+ 		if (utmp_chk(argv[1], argv[2]))
+ 			errx(1, "%s is not logged in on %s",
+ 			    argv[1], argv[2]);
+@@ -159,9 +161,10 @@
+ 	int fd, nfd;
+ 	uid_t uid;
+ 
+-	if (uid_from_user(user, &uid) == -1)
++	struct passwd *pw = getpwnam(user);
++	if (pw == NULL)
+ 		errx(1, "%s: unknown user", user);
+-
++	uid = pw->pw_uid;
+ 	(void)getutentries(NULL, &ep);
+ 
+ 	nloggedttys = nttys = 0;
+--- src.orig/patch/backupfile.c
++++ src.netbsd/patch/backupfile.c
+@@ -114,7 +114,7 @@
+ 	file_name_length = strlen(file);
+ 
+ 	while ((dp = readdir(dirp)) != NULL) {
+-		if (dp->d_namlen <= file_name_length)
++		if (strlen(dp->d_name) <= file_name_length)
+ 			continue;
+ 
+ 		this_version = version_number(file, dp->d_name, file_name_length);
+--- src.orig/patch/patch.c
++++ src.netbsd/patch/patch.c
+@@ -505,7 +505,7 @@
+ 	Argv_last = Argv;
+ 	if (!Argc)
+ 		return;
+-	optreset = optind = 1;
++	optind = 0;
+ 	while ((ch = getopt_long(Argc, Argv, options, longopts, NULL)) != -1) {
+ 		switch (ch) {
+ 		case 'b':
+--- src.orig/sed/main.c
++++ src.netbsd/sed/main.c
+@@ -75,6 +75,10 @@
+ #include "defs.h"
+ #include "extern.h"
+ 
++#ifndef REG_GNU
++#define REG_GNU 0
++#endif
++
+ /*
+  * Linked list of units (strings and files) to be compiled
+  */
+--- src.orig/util/fts.c
++++ src.netbsd/util/fts.c
+@@ -55,10 +55,6 @@
+ #include <string.h>
+ #include <unistd.h>
+ 
+-#if ! HAVE_NBTOOL_CONFIG_H
+-#define	HAVE_STRUCT_DIRENT_D_NAMLEN
+-#endif
+-
+ static FTSENT	*fts_alloc(FTS *, const char *, size_t);
+ static FTSENT	*fts_build(FTS *, int);
+ static void	 fts_free(FTSENT *);
+@@ -764,11 +760,7 @@
+ 		if (!ISSET(FTS_SEEDOT) && ISDOT(dp->d_name))
+ 			continue;
+ 
+-#if defined(HAVE_STRUCT_DIRENT_D_NAMLEN)
+-		dnamlen = dp->d_namlen;
+-#else
+ 		dnamlen = strlen(dp->d_name);
+-#endif
+ 		if ((p = fts_alloc(sp, dp->d_name, dnamlen)) == NULL)
+ 			goto mem1;
+ 		if (dnamlen >= maxlen) {	/* include space for NUL */
+@@ -1002,6 +994,7 @@
+ static FTSENT *
+ fts_sort(FTS *sp, FTSENT *head, size_t nitems)
+ {
++	void *new = NULL;
+ 	FTSENT **ap, *p;
+ 
+ 	_DIAGASSERT(sp != NULL);
+@@ -1015,10 +1008,11 @@
+ 	 * 40 so don't realloc one entry at a time.
+ 	 */
+ 	if (nitems > sp->fts_nitems) {
+-		errno = reallocarr(&sp->fts_array,
++		new = reallocarray(sp->fts_array,
+ 		    nitems + 40, sizeof(*sp->fts_array));
+-		if (errno)
++		if (new == NULL)
+ 			return head;
++		sp->fts_array = new;
+ 		sp->fts_nitems = fts_nitems_truncate(nitems + 40);
+ 	}
+ 	for (ap = sp->fts_array, p = head; p; p = p->fts_link)

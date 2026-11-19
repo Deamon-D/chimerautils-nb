@@ -22,8 +22,6 @@ subdir('setarch')
 subdir('setsid')
 subdir('switch_root')
 subdir('taskset')
-subdir('realpath')
-subdir('flock')
 
 if libcrypto.found()
     subdir('mcookie')

@@ -3055,9 +3055,108 @@
  
  struct _msgT {
  	long    msgId;
+--- src.orig/gzip/gzip.c
++++ src.netbsd/gzip/gzip.c
+@@ -1129,15 +1129,17 @@
+ 		maybe_warn("couldn't fchmod: %s", file);
+ 
+ #if !HAVE_NBTOOL_CONFIG_H
+-	TIMESPEC_TO_TIMEVAL(&times[0], &sb.st_atimespec);
+-	TIMESPEC_TO_TIMEVAL(&times[1], &sb.st_mtimespec);
++	TIMESPEC_TO_TIMEVAL(&times[0], &sb.st_atim);
++	TIMESPEC_TO_TIMEVAL(&times[1], &sb.st_mtim);
+ 	if (futimes(fd, times) < 0)
+ 		maybe_warn("couldn't utimes: %s", file);
+ 
++#if 0
+ 	/* finally, only try flags if they exist already */
+         if (sb.st_flags != 0 && fchflags(fd, sb.st_flags) < 0)
+ 		maybe_warn("couldn't fchflags: %s", file);
+ #endif
++#endif
+ }
+ #endif
+ 
+--- src.orig/gzip/unlz.c
++++ src.netbsd/gzip/unlz.c
+@@ -310,8 +310,8 @@
+ 	return 0;
+ }
+ 
+-static int
+-lz_read(void *cookie, char *rbp, int num)
++static ssize_t
++lz_read(void *cookie, char *rbp, size_t num)
+ {
+ 	int copylen = 0;
+ 	struct lz_decoder *lz = cookie;
+@@ -357,6 +357,7 @@
+     char *pre, size_t prelen)
+ {
+ 	memset(lz, 0, sizeof(*lz));
++	cookie_io_functions_t lzfuncs;
+ 
+ 	if (prelen == 0) {
+ 		lz->fin = fdopen(dup(fin), "r");
+@@ -368,7 +369,12 @@
+ 		if (lz->prein == NULL)
+ 			goto out;
+ 
+-		lz->fin = funopen(lz, lz_read, NULL, NULL, lz_close);
++		lzfuncs.read = lz_read;
++		lzfuncs.seek = NULL;
++		lzfuncs.write = NULL;
++		lzfuncs.close = lz_close;
++
++		lz->fin = fopencookie(lz, "r", lzfuncs);
+ 		if (lz->fin == NULL) {
+ 			fclose(lz->prein);
+ 			goto out;
 --- src.orig/gzip/zuncompress.c
 +++ src.netbsd/gzip/zuncompress.c
-@@ -238,7 +238,7 @@
+@@ -37,7 +37,7 @@
+ 
+ /* This file is #included by gzip.c */
+ 
+-static int	zread(void *, char *, int);
++static ssize_t	zread(void *, char *, size_t);
+ 
+ #define	tab_prefixof(i)	(zs->zs_codetab[i])
+ #define	tab_suffixof(i)	((char_type *)(zs->zs_htab))[i]
+@@ -172,6 +172,7 @@
+ zdopen(int fd)
+ {
+ 	struct s_zstate *zs;
++	cookie_io_functions_t zfuncs;
+ 
+ 	if ((zs = calloc(1, sizeof(struct s_zstate))) == NULL)
+ 		return (NULL);
+@@ -199,7 +200,12 @@
+ 		return NULL;
+ 	}
+ 
+-	return funopen(zs, zread, NULL, NULL, zclose);
++	zfuncs.read = zread;
++	zfuncs.seek = NULL;
++	zfuncs.write = NULL;
++	zfuncs.close = zclose;
++
++	return fopencookie(zs, "r", zfuncs);
+ }
+ 
+ /*
+@@ -208,8 +214,8 @@
+  * compressed file.  The tables used herein are shared with those of the
+  * compress() routine.  See the definitions above.
+  */
+-static int
+-zread(void *cookie, char *rbp, int num)
++static ssize_t
++zread(void *cookie, char *rbp, size_t num)
+ {
+ 	u_int count, i;
+ 	struct s_zstate *zs;
+@@ -238,7 +244,7 @@
  	if (fread(header + i, 1, sizeof(header) - i, zs->zs_fp) !=
  		  sizeof(header) - i ||
  	    memcmp(header, magic_header, sizeof(magic_header)) != 0) {
@@ -3066,7 +3165,7 @@
  		return (-1);
  	}
  	total_compressed_bytes = 0;
-@@ -247,7 +247,7 @@
+@@ -247,7 +253,7 @@
  	zs->zs_maxbits &= BIT_MASK;
  	zs->zs_maxmaxcode = 1L << zs->zs_maxbits;
  	if (zs->zs_maxbits > BITS || zs->zs_maxbits < 12) {

@@ -135,15 +135,12 @@ bzip2 = cc.find_library('bz2', required: get_option('bzip2'))
 lzma = dependency('liblzma', required: get_option('lzma'))
 
 # gzip needs zstd
-#zstd = dependency('libzstd', required: get_option('zstd'))
+zstd = dependency('libzstd', required: get_option('zstd'))
 
 # su needs pam
 pam = dependency('pam', required: get_option('pam'))
 # could be openpam, in which case pam_misc is not present
 pam_misc = dependency('pam_misc', required: false)
-
-# sort needs pthreads
-libpthread = dependency('threads')
 
 # meson at the moment provides no way to rename installed executables
 install_as = files('install-as.sh')

@@ -2,9 +2,7 @@
 subdir('col')
 subdir('colrm')
 subdir('column')
-if not chimera_custom_tools.enabled()
-    subdir('flock')
-endif
+subdir('flock')
 subdir('getopt')
 subdir('hexdump')
 subdir('indent')

@@ -70,10 +70,7 @@ subdir('unlink')
 subdir('wc')
 subdir('who')
 subdir('yes')
-
-if not chimera_custom_tools.enabled()
-    subdir('realpath')
-endif
+subdir('realpath')
 
 if libcrypto.found()
     subdir('xinstall')

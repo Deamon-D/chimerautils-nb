@@ -107,9 +107,6 @@ if cc.has_header('stdckdint.h')
     diff_incdefs += ['-DHAVE_STDCKDINT_H']
 endif
 
-# whether to use our own realpath
-chimera_custom_tools = get_option('chimera_custom_tools')
-
 # libacl is needed in several tools
 libacl = dependency('libacl', required: true)
 

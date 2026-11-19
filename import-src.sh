@@ -174,6 +174,7 @@ usr.bin/calendar
 usr.bin/col
 usr.bin/colrm
 usr.bin/column
+usr.bin/flock
 usr.bin/getopt
 usr.bin/hexdump
 usr.bin/indent

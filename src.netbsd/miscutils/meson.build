@@ -2,6 +2,9 @@
 subdir('col')
 subdir('colrm')
 subdir('column')
+if not chimera_custom_tools.enabled()
+    subdir('flock')
+endif
 subdir('getopt')
 subdir('hexdump')
 subdir('indent')
@@ -16,7 +19,6 @@ subdir('time')
 subdir('wall')
 subdir('whereis')
 subdir('write')
-#subdir('mtree')
 
 if tinfo.found()
     subdir('cal')

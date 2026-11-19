@@ -71,7 +71,7 @@ subdir('wc')
 subdir('who')
 subdir('yes')
 
-if not chimera_realpath.enabled()
+if not chimera_custom_tools.enabled()
     subdir('realpath')
 endif
 

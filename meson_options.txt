@@ -43,9 +43,9 @@ option('tiny',
     description: 'Also build tiny versions of some of the tools'
 )
 
-option('chimera_realpath',
+option('chimera_custom_tools',
     type: 'feature', value: 'auto',
-    description: 'Use custom implementation of realpath/readlink'
+    description: 'Use custom implementation of realpath/readlink/flock'
 )
 
 option('install-lib',

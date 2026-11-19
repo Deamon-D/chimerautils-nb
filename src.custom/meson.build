@@ -12,7 +12,6 @@ subdir('ctrlaltdel')
 subdir('delpart')
 subdir('dir')
 subdir('fallocate')
-subdir('flock')
 subdir('fsfreeze')
 subdir('hostid')
 subdir('ionice')
@@ -28,6 +27,7 @@ if libcrypto.found()
     subdir('mcookie')
 endif
 
-if chimera_realpath.enabled()
+if chimera_custom_tools.enabled()
     subdir('realpath')
+    subdir('flock')
 endif

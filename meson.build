@@ -108,7 +108,7 @@ if cc.has_header('stdckdint.h')
 endif
 
 # whether to use our own realpath
-chimera_realpath = get_option('chimera_realpath')
+chimera_custom_tools = get_option('chimera_custom_tools')
 
 # libacl is needed in several tools
 libacl = dependency('libacl', required: true)

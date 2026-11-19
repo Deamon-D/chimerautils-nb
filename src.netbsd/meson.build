@@ -33,9 +33,9 @@ subdir('vis')
 #    subdir('su')
 #endif
 
-#if not get_option('zlib').disabled() and zlib.found()
-#    subdir('gzip')
-#endif
+if not get_option('zlib').disabled() and zlib.found()
+    subdir('gzip')
+endif
 
 #if ncurses.found()
 #    subdir('ee')

@@ -1129,14 +1129,16 @@ copymodes(int fd, const struct stat *sbp, const char *file)
 		maybe_warn("couldn't fchmod: %s", file);
 
 #if !HAVE_NBTOOL_CONFIG_H
-	TIMESPEC_TO_TIMEVAL(&times[0], &sb.st_atimespec);
-	TIMESPEC_TO_TIMEVAL(&times[1], &sb.st_mtimespec);
+	TIMESPEC_TO_TIMEVAL(&times[0], &sb.st_atim);
+	TIMESPEC_TO_TIMEVAL(&times[1], &sb.st_mtim);
 	if (futimes(fd, times) < 0)
 		maybe_warn("couldn't utimes: %s", file);
 
+#if 0
 	/* finally, only try flags if they exist already */
         if (sb.st_flags != 0 && fchflags(fd, sb.st_flags) < 0)
 		maybe_warn("couldn't fchflags: %s", file);
+#endif
 #endif
 }
 #endif

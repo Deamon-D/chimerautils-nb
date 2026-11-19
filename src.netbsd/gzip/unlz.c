@@ -310,8 +310,8 @@ lz_flush(struct lz_decoder *lz)
 	return 0;
 }
 
-static int
-lz_read(void *cookie, char *rbp, int num)
+static ssize_t
+lz_read(void *cookie, char *rbp, size_t num)
 {
 	int copylen = 0;
 	struct lz_decoder *lz = cookie;
@@ -357,6 +357,7 @@ lz_create(struct lz_decoder *lz, int fin, int fdout, int dict_size,
     char *pre, size_t prelen)
 {
 	memset(lz, 0, sizeof(*lz));
+	cookie_io_functions_t lzfuncs;
 
 	if (prelen == 0) {
 		lz->fin = fdopen(dup(fin), "r");
@@ -368,7 +369,12 @@ lz_create(struct lz_decoder *lz, int fin, int fdout, int dict_size,
 		if (lz->prein == NULL)
 			goto out;
 
-		lz->fin = funopen(lz, lz_read, NULL, NULL, lz_close);
+		lzfuncs.read = lz_read;
+		lzfuncs.seek = NULL;
+		lzfuncs.write = NULL;
+		lzfuncs.close = lz_close;
+
+		lz->fin = fopencookie(lz, "r", lzfuncs);
 		if (lz->fin == NULL) {
 			fclose(lz->prein);
 			goto out;

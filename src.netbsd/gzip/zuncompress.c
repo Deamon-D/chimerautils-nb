@@ -37,7 +37,7 @@
 
 /* This file is #included by gzip.c */
 
-static int	zread(void *, char *, int);
+static ssize_t	zread(void *, char *, size_t);
 
 #define	tab_prefixof(i)	(zs->zs_codetab[i])
 #define	tab_suffixof(i)	((char_type *)(zs->zs_htab))[i]
@@ -172,6 +172,7 @@ FILE *
 zdopen(int fd)
 {
 	struct s_zstate *zs;
+	cookie_io_functions_t zfuncs;
 
 	if ((zs = calloc(1, sizeof(struct s_zstate))) == NULL)
 		return (NULL);
@@ -199,7 +200,12 @@ zdopen(int fd)
 		return NULL;
 	}
 
-	return funopen(zs, zread, NULL, NULL, zclose);
+	zfuncs.read = zread;
+	zfuncs.seek = NULL;
+	zfuncs.write = NULL;
+	zfuncs.close = zclose;
+
+	return fopencookie(zs, "r", zfuncs);
 }
 
 /*
@@ -208,8 +214,8 @@ zdopen(int fd)
  * compressed file.  The tables used herein are shared with those of the
  * compress() routine.  See the definitions above.
  */
-static int
-zread(void *cookie, char *rbp, int num)
+static ssize_t
+zread(void *cookie, char *rbp, size_t num)
 {
 	u_int count, i;
 	struct s_zstate *zs;

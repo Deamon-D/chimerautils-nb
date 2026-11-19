@@ -3449,6 +3449,187 @@
  	}
  
  	/* For each path, for each program... */
+--- src.orig/nc/netcat.c
++++ src.netbsd/nc/netcat.c
+@@ -64,6 +64,17 @@
+ #endif
+ #include "atomicio.h"
+ 
++#ifndef IPTOS_DSCP_CS0
++#define	IPTOS_DSCP_CS0		0x00
++#define	IPTOS_DSCP_CS1		0x20
++#define	IPTOS_DSCP_CS2		0x40
++#define	IPTOS_DSCP_CS3		0x60
++#define	IPTOS_DSCP_CS4		0x80
++#define	IPTOS_DSCP_CS5		0xa0
++#define	IPTOS_DSCP_CS6		0xc0
++#define	IPTOS_DSCP_CS7		0xe0
++#endif /* IPTOS_DSCP_CS0 */
++
+ #ifdef __NetBSD__
+ #define accept4(a, b, c, d) paccept((a), (b), (c), NULL, (d))
+ #endif
+@@ -163,7 +174,7 @@
+ 	socklen_t len;
+ 	struct sockaddr_storage cliaddr;
+ 	char *proxy = NULL, *proxyport = NULL;
+-	int errnum;
++	const char *errstr = NULL;
+ 	struct addrinfo proxyhints;
+ 	char unix_dg_tmp_socket_buf[UNIX_DG_TMP_SOCKET_SIZE];
+ #ifdef CRYPTO
+@@ -232,9 +243,9 @@
+ 			help();
+ 			break;
+ 		case 'i':
+-			iflag = strtoi(optarg, NULL, 0, 0, UINT_MAX, &errnum);
+-			if (errnum)
+-				errc(1, errnum, "bad interval `%s'", optarg);
++			iflag = strtonum(optarg, 0, UINT_MAX, &errstr);
++			if (errstr != NULL)
++				errx(1, "bad interval `%s'", optarg);
+ 			break;
+ #ifdef CRYPTO
+ 		case 'K':
+@@ -248,14 +259,14 @@
+ 			lflag = 1;
+ 			break;
+ 		case 'M':
+-			ttl = strtoi(optarg, NULL, 0, 0, 255, &errnum);
+-			if (errnum)
+-				errc(1, errnum, "bad ttl `%s'", optarg);
++			ttl = strtonum(optarg, 0, 255, &errstr);
++			if (errstr != NULL)
++				errx(1, "bad ttl `%s'", optarg);
+ 			break;
+ 		case 'm':
+-			minttl = strtoi(optarg, NULL, 0, 0, 255, &errnum);
+-			if (errnum)
+-				errc(1, errnum, "bad minttl `%s'", optarg);
++			minttl = strtonum(optarg, 0, 255, &errstr);
++			if (errstr != NULL)
++				errx(1, "bad minttl `%s'", optarg);
+ 			break;
+ 		case 'N':
+ 			Nflag = 1;
+@@ -289,18 +300,18 @@
+ 			break;
+ #ifdef __OpenBSD__
+ 		case 'V':
+-			rtableid = (int)strtoi(optarg, NULL, 0, 0, 255, &errnum);
+-			if (errnum)
+-				errc(1, errnum, "bad rtable `%s'", optarg);
++			rtableid = (int)strtonum(optarg, 0, 255, &errstr);
++			if (errstr != NULL)
++				errx(1, "bad rtable `%s'", optarg);
+ 			break;
+ #endif
+ 		case 'v':
+ 			vflag = 1;
+ 			break;
+ 		case 'w':
+-			timeout = strtoi(optarg, NULL, 0, 0, INT_MAX / 1000, &errnum);
+-			if (errnum)
+-				errc(1, errnum, "bad timeout `%s'", optarg);
++			timeout = strtonum(optarg, 0, INT_MAX / 1000, &errstr);
++			if (errstr != NULL)
++				errx(1, "bad timeout `%s'", optarg);
+ 			timeout *= 1000;
+ 			break;
+ 		case 'x':
+@@ -315,15 +326,15 @@
+ 			Dflag = 1;
+ 			break;
+ 		case 'I':
+-			Iflag = strtoi(optarg, NULL, 0, 1, 65536 << 14, &errnum);
+-			if (errnum)
+-				errc(1, errnum, "bad TCP receive window `%s'",
++			Iflag = strtonum(optarg, 1, 65536 << 14, &errstr);
++			if (errstr != NULL)
++				errx(1, "bad TCP receive window `%s'",
+ 				    optarg);
+ 			break;
+ 		case 'O':
+-			Oflag = strtoi(optarg, NULL, 0, 1, 65536 << 14, &errnum);
+-			if (errnum)
+-				errc(1, errnum, "bad TCP send window `%s'",
++			Oflag = strtonum(optarg, 1, 65536 << 14, &errstr);
++			if (errstr != NULL)
++				errx(1, "bad TCP send window `%s'",
+ 				    optarg);
+ 			break;
+ #ifdef CRYPTO
+@@ -340,9 +351,9 @@
+ 				break;
+ 			if (map_tls(optarg, &TLSopt))
+ 				break;
+-			Tflag = (int)strtoi(optarg, NULL, 0, 0, 255, &errnum);
+-			if (errnum)
+-				errc(1, errnum, "illegal tos/tls value `%s'",
++			Tflag = (int)strtonum(optarg, 0, 255, &errnum);
++			if (errstr != NULL)
++				errx(1, "illegal tos/tls value `%s'",
+ 				    optarg);
+ 			break;
+ #endif
+@@ -1399,14 +1410,14 @@
+ strtoport(const char *portstr, int udp)
+ {
+ 	struct servent *entry;
+-	int errnum;
++	const char *errstr = NULL;
+ 	const char *proto;
+ 	int port;
+ 
+ 	proto = udp ? "udp" : "tcp";
+ 
+-	port = strtoi(portstr, NULL, 0, 1, PORT_MAX, &errnum);
+-	if (errnum == 0)
++	port = strtonum(portstr, 1, PORT_MAX, &errstr);
++	if (errstr == NULL)
+ 		return port;
+ 	if ((entry = getservbyname(portstr, proto)) == NULL)
+ 		errx(1, "service \"%s\" unknown", portstr);
+--- src.orig/nc/socks.c
++++ src.netbsd/nc/socks.c
+@@ -39,7 +39,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
+-#include <resolv.h>
++#include <util.h>
+ #ifdef __OpenBSD__
+ #include <readpassphrase.h>
+ #endif
+@@ -117,16 +117,12 @@
+ getproxypass(const char *proxyuser, const char *proxyhost)
+ {
+ 	char prompt[512];
+-	static char pw[256];
++	const char *pw;
+ 
+ 	snprintf(prompt, sizeof(prompt), "Proxy password for %s@%s: ",
+ 	   proxyuser, proxyhost);
+-#ifdef __NetBSD__
+-     	if (getpassfd(prompt, pw, sizeof(pw), NULL, GETPASS_NEED_TTY, 0)
+-	    == NULL)
+-#else
+-	if (readpassphrase(prompt, pw, sizeof(pw), RPP_REQUIRE_TTY) == NULL)
+-#endif
++	/* deprecated but CBA to write a replacement at the moment */
++	if ((pw = getpass(prompt)) == NULL)
+ 		err(1, "Unable to read proxy passphrase");
+ 	return (pw);
+ }
+@@ -361,7 +357,7 @@
+ 			r = snprintf(cbuf, sizeof(buf), "%s:%s",
+ 			    proxyuser, proxypass);
+ 			if (r == -1 || (size_t)r >= sizeof(buf) ||
+-			    b64_ntop(buf, strlen(cbuf), resp,
++			    compat_b64_ntop(buf, strlen(cbuf), resp,
+ 			    sizeof(resp)) == -1)
+ 				errx(1, "Proxy username/password too long");
+ 			r = snprintf(cbuf, sizeof(buf), "Proxy-Authorization: "
 --- src.orig/patch/backupfile.c
 +++ src.netbsd/patch/backupfile.c
 @@ -114,7 +114,7 @@

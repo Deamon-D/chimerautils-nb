@@ -46,7 +46,6 @@ __RCSID("$NetBSD: utils.c,v 1.50 2024/01/15 17:41:06 christos Exp $");
 #ifndef SMALL
 #include <sys/acl.h>
 #endif
-#include <sys/extattr.h>
 
 #include <err.h>
 #include <errno.h>
@@ -68,11 +67,11 @@ set_utimes(const char *file, struct stat *fs)
 {
     struct timespec ts[2];
 
-    ts[0] = fs->st_atimespec;
-    ts[1] = fs->st_mtimespec;
+    ts[0] = fs->st_atim;
+    ts[1] = fs->st_mtim;
 
-    if (lutimens(file, ts)) {
-	warn("lutimens: %s", file);
+    if (utimensat(AT_FDCWD, file, ts, AT_SYMLINK_NOFOLLOW)) {
+	warn("utimensat: %s", file);
 	return (1);
     }
     return (0);
@@ -255,9 +254,10 @@ copy_file(FTSENT *entp, int dne)
 		}
 	}
 
+#if 0
 	if (pflag && (fcpxattr(from_fd, to_fd) != 0))
 		warn("%s: error copying extended attributes", to.p_path);
-
+#endif
 #ifndef SMALL
 	if (pflag && preserve_fd_acls(from_fd, to_fd) != 0)
 		rval = 1;
@@ -387,7 +387,7 @@ setfile(struct stat *fs, int fd)
 		warn("chmod: %s", to.p_path);
 		rval = 1;
 	}
-
+#if 0
 	if (!islink && !Nflag) {
 		unsigned long fflags = fs->st_flags;
 		/*
@@ -406,6 +406,7 @@ setfile(struct stat *fs, int fd)
 				rval = 1;
 			}
 	}
+#endif
 	/* if fd is non-zero, caller must call set_utimes() after close() */
 	if (fd == 0 && set_utimes(to.p_path, fs))
 	    rval = 1;

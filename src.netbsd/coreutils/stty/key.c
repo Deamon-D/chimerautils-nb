@@ -209,7 +209,7 @@ f_insane(struct info *ip)
 {
 	int f, r;
 	
-	r = f = open(_PATH_URANDOM, O_RDONLY, 0);
+	r = f = open("/dev/urandom", O_RDONLY, 0);
 	if (f >= 0) {
 		r = read(f, &(ip->t), sizeof(struct termios));
 		close(f);
@@ -282,11 +282,11 @@ f_rows(struct info *ip)
 void
 f_sane(struct info *ip)
 {
-	ip->t.c_cflag = TTYDEF_CFLAG | (ip->t.c_cflag & (CLOCAL|CRTSCTS|CDTRCTS));
+	ip->t.c_cflag = TTYDEF_CFLAG | (ip->t.c_cflag & (CLOCAL|CRTSCTS));
 	ip->t.c_iflag = TTYDEF_IFLAG;
 	ip->t.c_iflag |= ICRNL;
 	/* preserve user-preference flags in lflag */
-#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|ALTWERASE|TOSTOP|NOFLSH)
+#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|VWERASE|TOSTOP|NOFLSH)
 	ip->t.c_lflag = TTYDEF_LFLAG | (ip->t.c_lflag & LKEEP);
 	ip->t.c_oflag = TTYDEF_OFLAG;
 	ip->set = 1;
@@ -320,13 +320,17 @@ f_tty(struct info *ip)
 void
 f_ostart(struct info *ip)
 {
+#if 0
 	if (ioctl (0, TIOCSTART) < 0)
 		err(1, "TIOCSTART");
+#endif
 }
 
 void
 f_ostop(struct info *ip)
 {
+#if 0
 	if (ioctl (0, TIOCSTOP) < 0)
 		err(1, "TIOCSTOP");
+#endif
 }

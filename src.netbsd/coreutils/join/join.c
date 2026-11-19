@@ -301,9 +301,10 @@ slurp(INPUT *F)
 {
 	LINE *lp;
 	LINE tmp;
-	size_t len;
+	size_t bufsize = 0;
+	ssize_t len;
 	u_long cnt;
-	char *bp, *fieldp;
+	char *fieldp, *bp = NULL;
 	u_long nsize;
 
 	/*
@@ -322,8 +323,10 @@ slurp(INPUT *F)
 				nsize = 64;
 			else
 				nsize = F->setalloc << 1;
-			if (reallocarr(&F->set, nsize, sizeof(LINE)) != 0)
+			void *new = reallocarray(F->set, nsize, sizeof(LINE));
+			if (new == NULL)
 				enomem();
+			F->set = new;
 			F->setalloc = nsize;
 			memset(F->set + cnt, 0,
 			    (F->setalloc - cnt) * sizeof(LINE));
@@ -344,7 +347,7 @@ slurp(INPUT *F)
 			F->pushback = (u_long)-1;
 			continue;
 		}
-		if ((bp = fgetln(F->fp, &len)) == NULL)
+		if ((len = getline(&bp, &bufsize, F->fp)) == -1)
 			return;
 		if (lp->linealloc <= len + 1) {
 			char *n;
@@ -380,9 +383,10 @@ slurp(INPUT *F)
 					nsize = 16;
 				else
 					nsize = lp->fieldalloc << 1;
-				if (reallocarr(&lp->fields,
-				    nsize, sizeof(char *)) != 0)
+				void *new = reallocarray(lp->fields, nsize, sizeof(char *));
+				if (new == NULL)
 					enomem();
+				lp->fields = new;
 				lp->fieldalloc = nsize;
 			}
 			lp->fields[lp->fieldcnt++] = fieldp;
@@ -394,6 +398,8 @@ slurp(INPUT *F)
 			break;
 		}
 	}
+
+	free(bp);
 }
 
 static int
@@ -510,6 +516,7 @@ outfield(LINE *lp, u_long fieldno)
 static void
 fieldarg(char *option)
 {
+	void *new = NULL;
 	u_long fieldno;
 	char *end, *token;
 
@@ -524,9 +531,10 @@ fieldarg(char *option)
 		if (fieldno == 0)
 			errx(1, "field numbers are 1 based");
 		if (olistcnt == olistalloc) {
-			if (reallocarr(&olist,
-			    olistalloc + 50, sizeof(OLIST)) != 0)
+			if ((new = reallocarray(olist,
+			    olistalloc + 50, sizeof(OLIST))) == NULL)
 				enomem();
+			olist = new;
 			olistalloc += 50;
 		}
 		olist[olistcnt].fileno = token[0] - '0';

@@ -302,7 +302,7 @@ eval_match(const char *str, const char *re)
 	regmatch_t rm[2];
 	int rc;
 
-	if ((rc = regcomp(&rp, re, REG_BASIC)) != 0) {
+	if ((rc = regcomp(&rp, re, 0)) != 0) {
 		char errbuf[256];
 		(void)regerror(rc, &rp, errbuf, sizeof(errbuf));
 		yyerror("%s", errbuf);

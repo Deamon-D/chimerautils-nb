@@ -3,6 +3,7 @@ libcompat_sources = [
     'humanize_number.c',
     'merge.c',
      yacc.process('parsedate.y'),
+    'pwcache.c',
     'setmode.c',
     'strmode.c',
     'strpct.c',

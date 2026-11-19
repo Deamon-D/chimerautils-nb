@@ -91,10 +91,7 @@ __RCSID("$NetBSD: cksum.c,v 1.52.6.1 2026/05/04 14:06:10 snj Exp $");
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
-#include <md2.h>
-#include <md4.h>
 #include <md5.h>
-#include <rmd160.h>
 #include <sha1.h>
 #include <sha2.h>
 #include <stdio.h>
@@ -119,18 +116,9 @@ const struct hash {
 	void (*filterfunc)(int);
 	char *(*filefunc)(const char *, char *);
 } hashes[] = {
-	{ "md2", "MD2",
-	  MD2String, MD2TimeTrial, MD2TestSuite,
-	  MD2Filter, MD2File },
-	{ "md4", "MD4",
-	  MD4String, MD4TimeTrial, MD4TestSuite,
-	  MD4Filter, MD4File },
 	{ "md5", "MD5",
 	  MD5String, MD5TimeTrial, MD5TestSuite,
 	  MD5Filter, MD5File },
-	{ "rmd160", "RMD160",
-	  RMD160String, RMD160TimeTrial, RMD160TestSuite,
-	  RMD160Filter, (_filefunc) RMD160File },
 	{ "sha1", "SHA1",
 	  SHA1String, SHA1TimeTrial, SHA1TestSuite,
 	  SHA1Filter, (_filefunc) SHA1File },
@@ -556,10 +544,7 @@ usage(void)
 	    sumargs, fileargs);
 	(void)fprintf(stderr, "       sum %s\n           %s\n",
 	    sumargs, fileargs);
-	(void)fprintf(stderr, "       md2 %s %s\n", hashargs, fileargs);
-	(void)fprintf(stderr, "       md4 %s %s\n", hashargs, fileargs);
 	(void)fprintf(stderr, "       md5 %s %s\n", hashargs, fileargs);
-	(void)fprintf(stderr, "       rmd160 %s %s\n", hashargs, fileargs);
 	(void)fprintf(stderr, "       sha1 %s %s\n", hashargs, fileargs);
 	exit(1);
 }

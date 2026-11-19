@@ -113,7 +113,7 @@ r_reg(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
 	if (!(size = sbp->st_size))
 		return;
 
-	if ((uint64_t)size > SIZE_T_MAX) {
+	if ((uint64_t)size > SIZE_MAX) {
 			/* XXX: need a cleaner way to check this on amd64 */
 		errno = EFBIG;
 		xerr(0, "%s", fname);

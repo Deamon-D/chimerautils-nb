@@ -30,9 +30,9 @@
  */
 
 #if HAVE_NBTOOL_CONFIG_H
-#include "nbtool_config.h"
-/* config checked libc, we need the prototype as well */
-#undef HAVE_DEVNAME
+#define HAVE_STRUCT_STAT_ST_BIRTHTIME 1
+#define HAVE_STRUCT_STAT_ST_BIRTHTIMENSEC 1
+#define HAVE_STRUCT_STAT_ST_MTIMENSEC 1
 #endif
 
 #include <sys/cdefs.h>
@@ -49,6 +49,7 @@ __RCSID("$NetBSD: stat.c,v 1.55 2025/05/15 19:11:44 nia Exp $");
 #define HAVE_DEVNAME 1
 #endif /* HAVE_NBTOOL_CONFIG_H */
 
+#include <sys/sysmacros.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -67,6 +68,7 @@ __RCSID("$NetBSD: stat.c,v 1.55 2025/05/15 19:11:44 nia Exp $");
 #include <util.h>
 #endif
 #include <vis.h>
+#include <fcntl.h>
 
 #if HAVE_STRUCT_STAT_ST_FLAGS
 #define DEF_F "%#Xf "
@@ -184,9 +186,9 @@ __RCSID("$NetBSD: stat.c,v 1.55 2025/05/15 19:11:44 nia Exp $");
 #define SHOW_sizerdev	'Z'
 
 static void	usage(const char *) __dead;
-static void	output(const struct stat *, const char *,
+static void	output(const struct statx *, const char *,
 	    const char *, int, int, int);
-static int	format1(const struct stat *,	/* stat info */
+static int	format1(const struct statx *,	/* stat info */
 	    const char *,		/* the file name */
 	    const char *, int,		/* the format string itself */
 	    char *, size_t,		/* a place to put the output */
@@ -205,7 +207,7 @@ static int linkfail;
 int
 main(int argc, char *argv[])
 {
-	struct stat st;
+	struct statx st;
 	int ch, rc, errs, am_readlink;
 	int lsF, fmtchar, usestat, fn, nonl, quiet;
 	const char *statfmt, *options, *synopsis;
@@ -331,19 +333,19 @@ main(int argc, char *argv[])
 	do {
 		if (argc == 0) {
 			fn = 0;
-			rc = fstat(STDIN_FILENO, &st);
+			rc = statx(STDIN_FILENO, "", AT_EMPTY_PATH, STATX_ALL, &st);
 		} else if (usestat) {
 			/*
 			 * Try stat() and if it fails, fall back to
 			 * lstat() just in case we're examining a
 			 * broken symlink.
 			 */
-			if ((rc = stat(argv[0], &st)) == -1 &&
+			if ((rc = statx(AT_FDCWD, argv[0], 0, STATX_ALL, &st)) == -1 &&
 			    errno == ENOENT &&
-			    (rc = lstat(argv[0], &st)) == -1)
+			    (rc = statx(AT_FDCWD, argv[0], AT_SYMLINK_NOFOLLOW, STATX_ALL, &st)) == -1)
 				errno = ENOENT;
 		} else
-			rc = lstat(argv[0], &st);
+			rc = statx(AT_FDCWD, argv[0], AT_SYMLINK_NOFOLLOW, STATX_ALL, &st);
 
 		if (rc == -1) {
 			errs = 1;
@@ -357,7 +359,7 @@ main(int argc, char *argv[])
 					    usestat ? "stat" : "lstat");
 			}
 		} else if (am_readlink && statfmt[1] == 'Y' &&
-		    (st.st_mode & S_IFMT) != S_IFLNK) {
+		    (st.stx_mode & S_IFMT) != S_IFLNK) {
 			linkfail = 1;
 			if (!quiet)
 				warnx("%s: Not a symbolic link", argv[0]);
@@ -384,7 +386,7 @@ usage(const char *synopsis)
  * Parses a format string.
  */
 static void
-output(const struct stat *st, const char *file,
+output(const struct statx *st, const char *file,
     const char *statfmt, int fn, int nonl, int quiet)
 {
 	int flags, size, prec, ofmt, hilo, what;
@@ -651,7 +653,7 @@ fmttime(char *buf, size_t len, const char *fmt, time_t secs, long nsecs)
  * Arranges output according to a single parsed format substring.
  */
 static int
-format1(const struct stat *st,
+format1(const struct statx *st,
     const char *file,
     const char *fmt, int flen,
     char *buf, size_t blen,
@@ -688,8 +690,9 @@ format1(const struct stat *st,
 	switch (what) {
 	case SHOW_st_dev:
 	case SHOW_st_rdev:
-		small = (sizeof(st->st_dev) == 4);
-		data = (what == SHOW_st_dev) ? st->st_dev : st->st_rdev;
+		small = (sizeof(makedev(st->stx_dev_major, st->stx_dev_minor)) == 4);
+		data = (what == SHOW_st_dev) ? makedev(st->stx_dev_major, st->stx_dev_minor) :
+               makedev(st->stx_rdev_major, st->stx_rdev_minor);
 #if HAVE_DEVNAME
 		sdata = (what == SHOW_st_dev) ?
 		    devname(st->st_dev, S_IFBLK) :
@@ -722,17 +725,17 @@ format1(const struct stat *st,
 		}
 		break;
 	case SHOW_st_ino:
-		small = (sizeof(st->st_ino) == 4);
-		data = st->st_ino;
+		small = (sizeof(st->stx_ino) == 4);
+		data = st->stx_ino;
 		sdata = NULL;
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
 		if (ofmt == 0)
 			ofmt = FMTF_UNSIGNED;
 		break;
 	case SHOW_st_mode:
-		small = (sizeof(st->st_mode) == 4);
-		data = st->st_mode;
-		strmode(st->st_mode, smode);
+		small = (sizeof(st->stx_mode) == 4);
+		data = st->stx_mode;
+		strmode(st->stx_mode, smode);
 		stmp = smode;
 		l = strlen(stmp);
 		if (stmp[l - 1] == ' ')
@@ -762,20 +765,20 @@ format1(const struct stat *st,
 			ofmt = FMTF_OCTAL;
 		break;
 	case SHOW_st_nlink:
-		small = (sizeof(st->st_dev) == 4);
-		data = st->st_nlink;
+		small = (sizeof(makedev(st->stx_dev_major, st->stx_dev_major)) == 4);
+		data = st->stx_nlink;
 		sdata = NULL;
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
 		if (ofmt == 0)
 			ofmt = FMTF_UNSIGNED;
 		break;
 	case SHOW_st_uid:
-		small = (sizeof(st->st_uid) == 4);
-		data = st->st_uid;
-		if ((pw = getpwuid(st->st_uid)) != NULL)
+		small = (sizeof(st->stx_uid) == 4);
+		data = st->stx_uid;
+		if ((pw = getpwuid(st->stx_uid)) != NULL)
 			sdata = pw->pw_name;
 		else {
-			snprintf(sid, sizeof(sid), "(%ld)", (long)st->st_uid);
+			snprintf(sid, sizeof(sid), "(%ld)", (long)st->stx_uid);
 			sdata = sid;
 		}
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
@@ -784,12 +787,12 @@ format1(const struct stat *st,
 			ofmt = FMTF_UNSIGNED;
 		break;
 	case SHOW_st_gid:
-		small = (sizeof(st->st_gid) == 4);
-		data = st->st_gid;
-		if ((gr = getgrgid(st->st_gid)) != NULL)
+		small = (sizeof(st->stx_gid) == 4);
+		data = st->stx_gid;
+		if ((gr = getgrgid(st->stx_gid)) != NULL)
 			sdata = gr->gr_name;
 		else {
-			snprintf(sid, sizeof(sid), "(%ld)", (long)st->st_gid);
+			snprintf(sid, sizeof(sid), "(%ld)", (long)st->stx_gid);
 			sdata = sid;
 		}
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
@@ -799,26 +802,26 @@ format1(const struct stat *st,
 		break;
 	case SHOW_st_atime:
 		gottime = 1;
-		secs = st->st_atime;
+		secs = st->stx_atime.tv_sec;
 #if HAVE_STRUCT_STAT_ST_MTIMENSEC
-		nsecs = st->st_atimensec;
+		nsecs = st->stx_atime.tv_nsec;
 #endif
 		/* FALLTHROUGH */
 	case SHOW_st_mtime:
 		if (!gottime) {
 			gottime = 1;
-			secs = st->st_mtime;
+			secs = st->stx_mtime.tv_sec;
 #if HAVE_STRUCT_STAT_ST_MTIMENSEC
-			nsecs = st->st_mtimensec;
+			nsecs = st->stx_mtime.tv_nsec;
 #endif
 		}
 		/* FALLTHROUGH */
 	case SHOW_st_ctime:
 		if (!gottime) {
 			gottime = 1;
-			secs = st->st_ctime;
+			secs = st->stx_ctime.tv_sec;
 #if HAVE_STRUCT_STAT_ST_MTIMENSEC
-			nsecs = st->st_ctimensec;
+			nsecs = st->stx_ctime.tv_nsec;
 #endif
 		}
 #if HAVE_STRUCT_STAT_ST_BIRTHTIME
@@ -826,9 +829,9 @@ format1(const struct stat *st,
 	case SHOW_st_btime:
 		if (!gottime) {
 			gottime = 1;
-			secs = st->st_birthtime;
+			secs = st->stx_btime.tv_sec;
 #if HAVE_STRUCT_STAT_ST_BIRTHTIMENSEC
-			nsecs = st->st_birthtimensec;
+			nsecs = st->stx_btime.tv_nsec;
 #endif /* HAVE_STRUCT_STAT_ST_BIRTHTIMENSEC */
 		}
 #endif /* HAVE_STRUCT_STAT_ST_BIRTHTIME */
@@ -842,8 +845,8 @@ format1(const struct stat *st,
 			ofmt = FMTF_DECIMAL;
 		break;
 	case SHOW_st_size:
-		small = (sizeof(st->st_size) == 4);
-		data = st->st_size;
+		small = (sizeof(st->stx_size) == 4);
+		data = st->stx_size;
 		sdata = NULL;
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
 		if (ofmt == 0)
@@ -864,16 +867,16 @@ format1(const struct stat *st,
 		}
 		break;
 	case SHOW_st_blocks:
-		small = (sizeof(st->st_blocks) == 4);
-		data = st->st_blocks;
+		small = (sizeof(st->stx_blocks) == 4);
+		data = st->stx_blocks;
 		sdata = NULL;
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
 		if (ofmt == 0)
 			ofmt = FMTF_UNSIGNED;
 		break;
 	case SHOW_st_blksize:
-		small = (sizeof(st->st_blksize) == 4);
-		data = st->st_blksize;
+		small = (sizeof(st->stx_blksize) == 4);
+		data = st->stx_blksize;
 		sdata = NULL;
 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
 		if (ofmt == 0)
@@ -928,7 +931,7 @@ format1(const struct stat *st,
 	case SHOW_symlink:
 		small = 0;
 		data = 0;
-		if (S_ISLNK(st->st_mode)) {
+		if (S_ISLNK(st->stx_mode)) {
 			snprintf(path, sizeof(path), " -> ");
 			l = readlink(file, path + 4, sizeof(path) - 4 - 1);
 			if (l == -1) {
@@ -955,11 +958,11 @@ format1(const struct stat *st,
 		data = 0;
 		sdata = "";
 		if (hilo == 0 || hilo == LOW_PIECE) {
-			switch (st->st_mode & S_IFMT) {
+			switch (st->stx_mode & S_IFMT) {
 			case S_IFIFO:	sdata = "|";			break;
 			case S_IFDIR:	sdata = "/";			break;
 			case S_IFREG:
-				if (st->st_mode &
+				if (st->stx_mode &
 				    (S_IXUSR | S_IXGRP | S_IXOTH))
 					sdata = "*";
 				break;
@@ -977,7 +980,7 @@ format1(const struct stat *st,
 			hilo = 0;
 		}
 		else if (hilo == HIGH_PIECE) {
-			switch (st->st_mode & S_IFMT) {
+			switch (st->stx_mode & S_IFMT) {
 			case S_IFIFO:	sdata = "Fifo File";		break;
 			case S_IFCHR:	sdata = "Character Device";	break;
 			case S_IFDIR:	sdata = "Directory";		break;
@@ -1044,7 +1047,7 @@ format1(const struct stat *st,
 			ofmt = FMTF_STRING;
 		break;
 	case SHOW_sizerdev:
-		if (S_ISCHR(st->st_mode) || S_ISBLK(st->st_mode)) {
+		if (S_ISCHR(st->stx_mode) || S_ISBLK(st->stx_mode)) {
 			char majdev[20], mindev[20];
 			int l1, l2;
 

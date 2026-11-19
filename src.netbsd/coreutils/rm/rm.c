@@ -243,13 +243,13 @@ rm_tree(char **argv)
 			if (rval != 0 && fflag && errno == ENOENT)
 				continue;
 			break;
-
+#if 0
 		case FTS_W:
 			rval = undelete(p->fts_accpath);
 			if (rval != 0 && fflag && errno == ENOENT)
 				continue;
 			break;
-
+#endif
 		default:
 			if (Pflag) {
 				if (rm_overwrite(p->fts_accpath, NULL))
@@ -288,7 +288,7 @@ rm_file(char **argv)
 		/* Assume if can't stat the file, can't unlink it. */
 		if (lstat(f, &sb)) {
 			if (Wflag) {
-				sb.st_mode = S_IFWHT|S_IWUSR|S_IRUSR;
+				sb.st_mode = S_IWUSR|S_IRUSR;
 			} else {
 				if (!fflag || !NONEXISTENT(errno)) {
 					warn("%s", f);
@@ -307,10 +307,12 @@ rm_file(char **argv)
 			eval = 1;
 			continue;
 		}
-		if (!fflag && !S_ISWHT(sb.st_mode) && !check(f, f, &sb))
+		if (!fflag && !check(f, f, &sb))
 			continue;
+#if 0
 		if (S_ISWHT(sb.st_mode))
 			rval = undelete(f);
+#endif
 		else if (S_ISDIR(sb.st_mode))
 			rval = rmdir(f);
 		else {

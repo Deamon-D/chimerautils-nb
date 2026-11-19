@@ -40,7 +40,7 @@
 .Nd list directory contents
 .Sh SYNOPSIS
 .Nm
-.Op Fl 1AaBbCcdFfghikLlMmnOoPpqRrSsTtuWwXx
+.Op Fl 1AaBbCcdFfghikLlMmnOPpqRrSsTtuWwXx
 .Op Ar
 .Sh DESCRIPTION
 For each
@@ -187,16 +187,6 @@ to a owner or group name.
 Output only leaf files (not directories), eliding other
 .Nm
 output.
-.It Fl o
-Include the file flags in a long
-.Pq Fl l
-output.
-If no file flags are set,
-.Dq -
-is displayed.
-(See
-.Xr chflags 1
-for a list of possible flags and their meanings.)
 .It Fl P
 Print the full pathname for each file.
 .It Fl p
@@ -321,10 +311,6 @@ number of links
 owner name
 .It
 group name
-.It
-file flags (if
-.Fl o
-given)
 .It
 number of bytes in the file
 .It
@@ -512,7 +498,6 @@ files in order to be compatible with the
 .St -p1003.2
 specification.
 .Sh SEE ALSO
-.Xr chflags 1 ,
 .Xr chmod 1 ,
 .Xr stat 2 ,
 .Xr dirent 3 ,

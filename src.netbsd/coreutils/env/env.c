@@ -49,6 +49,7 @@ __RCSID("$NetBSD: env.c,v 1.25 2025/02/09 14:25:26 kre Exp $");
 #include <locale.h>
 #include <errno.h>
 #include <paths.h>
+#include <stddef.h>
 
 static void usage(void) __dead;
 static const char *path_find(const char *);

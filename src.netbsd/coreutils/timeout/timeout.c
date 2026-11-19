@@ -107,6 +107,8 @@ parse_duration(const char *duration)
 	return (ret);
 }
 
+extern const int sys_nsig;
+
 static int
 parse_signal(const char *str)
 {
@@ -118,7 +120,7 @@ parse_signal(const char *str)
 		str += 3;
 
 		for (i = 1; i < sys_nsig; i++) {
-			if (strcasecmp(str, sys_signame[i]) == 0)
+			if (strcasecmp(str, signum_to_signame(i)) == 0)
 				return (i);
 		}
 

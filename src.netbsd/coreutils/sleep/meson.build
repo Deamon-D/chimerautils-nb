@@ -1,6 +1,7 @@
 sleep_prog = executable(
     'sleep',
     [ 'sleep.c' ],
+    dependencies : [libm],
     include_directories : inc,
     install : true,
 )

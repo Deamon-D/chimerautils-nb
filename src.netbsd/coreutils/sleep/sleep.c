@@ -133,8 +133,6 @@ main(int argc, char *argv[])
 		 * (but only if that is the potential problem)
 		 */
 		val = strtod(arg, &temp);
-		if (*temp != '\0')
-			val = strtod_l(arg, &temp, LC_C_LOCALE);
 		if (val < 0 || temp == arg || *temp != '\0')
 			usage();
 

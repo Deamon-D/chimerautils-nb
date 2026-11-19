@@ -160,5 +160,12 @@ BSD_HASH_FUNCS(SHA512_256, sha512_256)
 #define MD5File MD5_File
 #define MD5Data MD5_Data
 
+#define SHA1Init SHA1_Init
+#define SHA1Update SHA1_Update
+#define SHA1Final SHA1_Final
+#define SHA1End SHA1_End
+#define SHA1File SHA1_File
+#define SHA1Data SHA1_Data
+
 #endif
 

@@ -1,11 +1,26 @@
 cksum_prog = executable(
     'cksum',
-    ['cksum.c', 'crc.c', 'print.c', 'sum1.c', 'sum2.c', 'crc32.c'],
-    c_args: ['-Duint32_t=u_int32_t'],
-    include_directories: inc,
+    [
+     'cksum.c',
+     'crc.c',
+     'md5.c',
+     'sha1.c',
+     'print.c',
+     'sum1.c',
+     'sum2.c',
+     'sha256.c',
+     'sha384.c',
+     'sha512.c',
+    ],
+    dependencies : [libcrypto],
+    link_with : [libcompat],
+    include_directories: [inc, cinc],
     install: true,
 )
+
 install_man('cksum.1')
 
-install_symlink('sum', pointing_to: 'cksum', install_dir: bindir)
-install_symlink('sum.1', pointing_to: 'cksum.1', install_dir: man1dir)
+foreach l: [ 'sum', 'md2', 'md4', 'md5', 'sha1', 'sha256', 'sha384', 'sha512', 'rmd160']
+    install_symlink(l, pointing_to: 'cksum', install_dir: bindir)
+    install_symlink(l + '.1', pointing_to: 'cksum.1', install_dir: man1dir)
+endforeach

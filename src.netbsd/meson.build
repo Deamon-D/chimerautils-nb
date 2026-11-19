@@ -45,7 +45,7 @@ subdir('vis')
 
 # tool collections
 
-#subdir('coreutils')
+subdir('coreutils')
 #subdir('diffutils')
 #subdir('findutils')
 subdir('miscutils')

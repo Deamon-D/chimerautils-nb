@@ -50,7 +50,7 @@ __RCSID("$NetBSD: df.c,v 1.104.2.2 2026/05/06 16:58:54 martin Exp $");
 #endif /* not lint */
 
 #include <sys/param.h>
-#include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <sys/mount.h>
 
 #include <assert.h>
@@ -65,17 +65,45 @@ __RCSID("$NetBSD: df.c,v 1.104.2.2 2026/05/06 16:58:54 martin Exp $");
 #include <string.h>
 #include <unistd.h>
 #include <util.h>
+#include <mntent.h>
+#include <paths.h>
+#include <inttypes.h>
+
+#define MNT_IGNORE	0x01
+#define MNT_LOCAL	0x02
+
+#define MNAMELEN	32
+
+/* combining data from getmntent() and statvfs() on Linux */
+struct mntinfo {
+    char f_mntfromname[MNAMELEN]; /* mnt_fsname from getmntent */
+    char f_mntonname[MNAMELEN];	  /* mnt_dir from getmntent */
+    char f_fstypename[MNAMELEN];  /* mnt_fsname from getmntent */
+    unsigned long f_bsize;	  /* f_bsize from statvfs */
+    unsigned long f_frsize;	  /* f_bsize from statvfs */
+    unsigned long f_namemax;      /* f_namemax from statvfs */
+    fsblkcnt_t f_blocks;          /* f_blocks from statvfs */
+    fsblkcnt_t f_bfree;           /* f_bfree from statvfs */
+    fsblkcnt_t f_bavail;          /* f_bavail from statvfs */
+    fsblkcnt_t f_bresvd;          /* f_bfree - f_bavail */
+    fsfilcnt_t f_files;           /* f_files from statvfs */
+    fsfilcnt_t f_ffree;           /* f_ffree from statvfs */
+    fsfilcnt_t f_favail;          /* f_favail from statvfs */
+    unsigned long f_fsid;         /* f_fsid from statvfs */
+    unsigned long f_flag;         /* f_flag from statvfs */
+};
 
 static char	*getmntpt(const char *);
-static void	 addstat(struct statvfs *, const struct statvfs *);
-static void	 prtstat(const struct statvfs *, int);
+static void	 addstat(struct mntinfo *, const struct mntinfo *);
+static void	 prtstat(const struct mntinfo *, int);
 static int	 selected(const char *, size_t);
 static void	 maketypelist(char *);
-static size_t	 regetmntinfo(struct statvfs **, size_t);
+static size_t	 regetmntinfo(struct mntinfo **, size_t);
 __dead static void usage(void);
 static void	 prthumanval(bool, int64_t, int);
-static void	 prthuman(const struct statvfs *, int64_t, int64_t);
-
+static void	 prthuman(const struct mntinfo *, int64_t, int64_t);
+static int	 getmntinfo(struct mntinfo **);
+static int	 mntinfo(const char *path, struct mntinfo *st);
 static int	 aflag, cflag, fflag, gflag, hflag, iflag, lflag;
 static int	 Mflag, Nflag, nflag, Pflag, qflag, Wflag;
 static long	 usize;
@@ -95,7 +123,7 @@ int
 main(int argc, char *argv[])
 {
 	struct stat stbuf;
-	struct statvfs *mntbuf, totals;
+	struct mntinfo *mntbuf, totals;
 	int ch, maxwidth, width;
 	size_t i;
 	char *mntpt;
@@ -200,7 +228,7 @@ main(int argc, char *argv[])
 	argc -= optind;
 	argv += optind;
 
-	mntcount = getmntinfo(&mntbuf, MNT_NOWAIT);
+	mntcount = getmntinfo(&mntbuf);
 	if (mntcount == 0)
 		err(EXIT_FAILURE,
 		    "retrieving information on mounted file systems");
@@ -228,7 +256,7 @@ main(int argc, char *argv[])
 			 * Statfs does not take a `wait' flag, so we cannot
 			 * implement nflag here.
 			 */
-			if (!statvfs(mntpt, &mntbuf[mntcount])) {
+			if (!mntinfo(mntpt, &mntbuf[mntcount])) {
 				if (Mflag &&
 				    !streq(mntpt, mntbuf[mntcount].f_mntonname))
 					warnq(("%s is not a mount point",
@@ -261,10 +289,6 @@ main(int argc, char *argv[])
 	maxwidth = 0;
 	for (i = 0; i < mntcount; i++) {
 		width = 0;
-		if (Wflag && mntbuf[i].f_mntfromlabel[0]) {
-			/* +5 is for "NAME=" added later */
-			width = (int)strlen(mntbuf[i].f_mntfromlabel) + 5;
-		}
 		if (width == 0)
 			width = (int)strlen(mntbuf[i].f_mntfromname);
 		if (width > maxwidth)
@@ -288,9 +312,9 @@ static char *
 getmntpt(const char *name)
 {
 	size_t count, i;
-	struct statvfs *mntbuf;
+	struct mntinfo *mntbuf;
 
-	count = getmntinfo(&mntbuf, MNT_NOWAIT);
+	count = getmntinfo(&mntbuf);
 	if (count == 0)
 		err(EXIT_FAILURE, "Can't get mount information");
 	for (i = 0; i < count; i++) {
@@ -360,13 +384,13 @@ maketypelist(char *fslist)
  * current (not cached) info.  Returns the new count of valid statvfs bufs.
  */
 static size_t
-regetmntinfo(struct statvfs **mntbufp, size_t count)
+regetmntinfo(struct mntinfo **mntbufp, size_t count)
 {
 	size_t i, j;
-	struct statvfs *mntbuf;
+	struct mntinfo *mntbuf;
 
 	if (!lflag && typelist == NULL && aflag)
-		return nflag ? count : (size_t)getmntinfo(mntbufp, MNT_WAIT);
+		return nflag ? count : (size_t)getmntinfo(mntbufp);
 
 	mntbuf = *mntbufp;
 	j = 0;
@@ -381,8 +405,8 @@ regetmntinfo(struct statvfs **mntbufp, size_t count)
 		if (nflag)
 			mntbuf[j] = mntbuf[i];
 		else {
-			struct statvfs layerbuf = mntbuf[i];
-			(void)statvfs(mntbuf[i].f_mntonname, &mntbuf[j]);
+			struct mntinfo layerbuf = mntbuf[i];
+			(void)mntinfo(mntbuf[i].f_mntonname, &mntbuf[j]);
 			/*
 			 * If the FS name changed, then new data is for
 			 * a different layer and we don't want it.
@@ -410,7 +434,7 @@ prthumanval(bool bytes, int64_t value, int width)
 }
 
 static void
-prthuman(const struct statvfs *sfsp, int64_t used, int64_t bavail)
+prthuman(const struct mntinfo *sfsp, int64_t used, int64_t bavail)
 {
 
 	prthumanval(true,
@@ -434,7 +458,7 @@ prthuman(const struct statvfs *sfsp, int64_t used, int64_t bavail)
 	    (int64_t)(num) * (int64_t)((fsbs) / (bs)))
 
 static void
-addstat(struct statvfs *totalfsp, const struct statvfs *sfsp)
+addstat(struct mntinfo *totalfsp, const struct mntinfo *sfsp)
 {
 	uint64_t frsize;
 
@@ -446,14 +470,13 @@ addstat(struct statvfs *totalfsp, const struct statvfs *sfsp)
 	totalfsp->f_files += sfsp->f_files;
 	totalfsp->f_ffree += sfsp->f_ffree;
 	totalfsp->f_favail += sfsp->f_favail;
-	totalfsp->f_fresvd += sfsp->f_fresvd;
 }
 
 /*
  * Print out status about a filesystem.
  */
 static void
-prtstat(const struct statvfs *sfsp, int maxwidth)
+prtstat(const struct mntinfo *sfsp, int maxwidth)
 {
 	static long blocksize;
 	static int headerlen, timesthrough;
@@ -463,14 +486,6 @@ prtstat(const struct statvfs *sfsp, int maxwidth)
 	int64_t used, availblks, inodes;
 	int64_t bavail;
 	char pb[64];
-	char mntfromname[sizeof(sfsp->f_mntfromname) + 10];
-
-	if (Wflag && sfsp->f_mntfromlabel[0]) {
-		snprintf(mntfromname, sizeof(mntfromname), "NAME=%s",
-		    sfsp->f_mntfromlabel);
-	} else {
-		strlcpy(mntfromname, sfsp->f_mntfromname, sizeof(mntfromname));
-	}
 
 	if (gflag) {
 		/*
@@ -483,7 +498,7 @@ prtstat(const struct statvfs *sfsp, int maxwidth)
 		 *
 		 */
 		(void)printf("%10s (%-12s): %7ld block size %12ld frag size\n",
-		    sfsp->f_mntonname, mntfromname,
+		    sfsp->f_mntonname, sfsp->f_mntfromname,
 		    sfsp->f_bsize,	/* On UFS/FFS systems this is
 					 * also called the "optimal
 					 * transfer block size" but it
@@ -506,9 +521,6 @@ prtstat(const struct statvfs *sfsp, int maxwidth)
 		(void)printf("%10s fstype  %#15lx flag  %17ld filename "
 		    "length\n", sfsp->f_fstypename, sfsp->f_flag,
 		    sfsp->f_namemax);
-		(void)printf("%10lu owner %17" PRId64 " syncwrites %12" PRId64
-		    " asyncwrites\n\n", (unsigned long)sfsp->f_owner,
-		    sfsp->f_syncwrites, sfsp->f_asyncwrites);
 
 		/*
 		 * a concession by the structured programming police to the
@@ -580,7 +592,7 @@ prtstat(const struct statvfs *sfsp, int maxwidth)
 		}
 	}
 	used = sfsp->f_blocks - sfsp->f_bfree;
-	bavail = sfsp->f_bfree - sfsp->f_bresvd;
+	bavail = sfsp->f_bavail;
 	availblks = bavail + used;
 	if (Pflag) {
 		assert(hflag == 0);
@@ -591,7 +603,7 @@ prtstat(const struct statvfs *sfsp, int maxwidth)
 		 * <file system root>
 		 */
 		(void)printf("%s %" PRId64 " %" PRId64 " %" PRId64 " %s%% %s\n",
-		    mntfromname,
+		    sfsp->f_mntfromname,
 		    fsbtoblk(sfsp->f_blocks, sfsp->f_frsize, blocksize),
 		    fsbtoblk(used, sfsp->f_frsize, blocksize),
 		    fsbtoblk(bavail, sfsp->f_frsize, blocksize),
@@ -622,7 +634,7 @@ prtstat(const struct statvfs *sfsp, int maxwidth)
 		return;
 	}
 
-	(void)printf("%-*.*s ", maxwidth, maxwidth, mntfromname);
+	(void)printf("%-*.*s ", maxwidth, maxwidth, sfsp->f_mntfromname);
 
 	if (hflag)
 		prthuman(sfsp, used, bavail);
@@ -666,4 +678,98 @@ usage(void)
 	    getprogname());
 	exit(1);
 	/* NOTREACHED */
+}
+
+static int
+mntinfo(const char *path, struct mntinfo *mnt)
+{
+	struct statvfs st;
+	if (statvfs(path, &st) < 0)
+		return -1;
+
+	mnt->f_bsize = st.f_bsize;
+	mnt->f_frsize = st.f_frsize;
+	mnt->f_namemax = st.f_namemax;
+
+	mnt->f_blocks = st.f_blocks;
+	mnt->f_bfree = st.f_bfree;
+	mnt->f_bavail = st.f_bavail;
+	mnt->f_bresvd = st.f_bfree - st.f_bavail;
+
+	mnt->f_files = st.f_files;
+	mnt->f_ffree = st.f_ffree;
+	mnt->f_favail = st.f_favail;
+
+	mnt->f_fsid = st.f_fsid;
+	mnt->f_flag = st.f_flag;
+
+	mnt->f_mntfromname[0] = '\0';
+	mnt->f_mntonname[0] = '\0';
+	mnt->f_fstypename[0] = '\0';
+	return 0;
+}
+
+static int
+getmntinfo(struct mntinfo **mntbufp)
+{
+	FILE *fp = NULL;
+	int mntsize = 0;
+	struct mntinfo mnt;
+	struct mntent *ent = NULL;
+	struct mntinfo *list = NULL;
+	struct mntinfo *current = NULL;
+
+#ifdef _PATH_MOUNTED
+	fp = setmntent(_PATH_MOUNTED, "r");
+#else
+	if (access("/proc/self/mounts", R_OK) == 0) {
+		fp = setmntent("/proc/self/mounts", "r");
+	} else if (access("/proc/mounts", R_OK) == 0) {
+		fp = setmntent("/proc/mounts", "r");
+	} else if (access("/etc/mtab", R_OK) == 0) {
+		fp = setmntent("/etc/mtab", "r");
+	}
+#endif
+
+	if (fp == NULL)
+		return 0;
+
+	while ((ent = getmntent(fp)) != NULL) {
+		if (hasmntopt(ent, MNTTYPE_IGNORE) != NULL)
+			continue;
+		if (mntinfo(ent->mnt_dir, &mnt) < 0)
+			return 0;
+		if (mnt.f_blocks == 0)
+			continue;
+
+		list = realloc(list, (mntsize + 1) * sizeof(*list));
+		assert(list != NULL);
+		current = list + mntsize;
+
+		current->f_bsize = mnt.f_bsize;
+		current->f_frsize = mnt.f_frsize;
+		current->f_namemax = mnt.f_namemax;
+
+		current->f_blocks = mnt.f_blocks;
+		current->f_bfree = mnt.f_bfree;
+		current->f_bavail = mnt.f_bavail;
+		current->f_bresvd = mnt.f_bfree - mnt.f_bavail;
+
+		current->f_files = mnt.f_files;
+		current->f_ffree = mnt.f_ffree;
+		current->f_favail = mnt.f_favail;
+
+		current->f_fsid = mnt.f_fsid;
+		current->f_flag = mnt.f_flag;
+
+		strlcpy(current->f_fstypename, ent->mnt_type, MNAMELEN);
+		strlcpy(current->f_mntfromname, ent->mnt_fsname, MNAMELEN);
+		strlcpy(current->f_mntonname, ent->mnt_dir, MNAMELEN);
+		mntsize++;
+	}
+
+	endmntent(fp);
+
+	*mntbufp = list;
+	return mntsize;
 }

@@ -16,6 +16,7 @@ subdir('time')
 subdir('wall')
 subdir('whereis')
 subdir('write')
+#subdir('mtree')
 
 if tinfo.found()
     subdir('cal')

@@ -43,6 +43,7 @@ __RCSID("$NetBSD: print.c,v 1.23.40.1 2026/09/13 13:38:59 martin Exp $");
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
 
 #include "stty.h"
 #include "extern.h"
@@ -100,12 +101,14 @@ print(struct termios *tp, struct winsize *wp, int queue, const char *ldisc,
 	put("-echonl", ECHONL, 0);
 	put("-echoctl", ECHOCTL, 0);
 	put("-echoprt", ECHOPRT, 0);
-	put("-altwerase", ALTWERASE, 0);
+	put("-altwerase", VWERASE, 0);
 	put("-noflsh", NOFLSH, 0);
 	put("-tostop", TOSTOP, 0);
 	put("-flusho", FLUSHO, 0);
 	put("-pendin", PENDIN, 0);
+#if 0
 	put("-nokerninfo", NOKERNINFO, 0);
+#endif
 	put("-extproc", EXTPROC, 0);
 
 	/* input flags */
@@ -131,7 +134,9 @@ print(struct termios *tp, struct winsize *wp, int queue, const char *ldisc,
 	put("-opost", OPOST, 1);
 	put("-onlcr", ONLCR, 1);
 	put("-ocrnl", OCRNL, 0);
+#if 0
 	put("-oxtabs", OXTABS, 1);
+#endif
 	put("-onocr", ONOCR, 0);
 	put("-onlret", ONLRET, 0);
 
@@ -159,8 +164,10 @@ print(struct termios *tp, struct winsize *wp, int queue, const char *ldisc,
 	put("-clocal", CLOCAL, 0);
 	put("-cstopb", CSTOPB, 0);
 	put("-crtscts", CRTSCTS, 0);
+#if 0
 	put("-mdmbuf", MDMBUF, 0);
 	put("-cdtrcts", CDTRCTS, 0);
+#endif
 
 	/* special control characters */
 	cc = tp->c_cc;

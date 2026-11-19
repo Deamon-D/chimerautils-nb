@@ -68,9 +68,10 @@ main (int argc, char *argv[])
 	const char *prevp, *thisp;
 	FILE *ifp, *ofp;
 	int ch;
-	char *prevline, *thisline, *p;
-	size_t prevlinesize, thislinesize, psize;
+	char *prevline, *thisline, *p = NULL;
+	size_t prevlinesize, thislinesize, bufsize = 0;
 	size_t prevlen, thislen;
+	ssize_t psize;
 
 	setprogname(argv[0]);
 	ifp = ofp = NULL;
@@ -122,7 +123,7 @@ main (int argc, char *argv[])
 		usage();
 	}
 
-	if ((p = fgetln(ifp, &psize)) == NULL)
+	if ((psize = getline(&p, &bufsize, ifp)) == -1)
 		return 0;
 	prevlinesize = prevlen = psize;
 	if ((prevline = malloc(prevlinesize + 1)) == NULL)
@@ -139,7 +140,7 @@ main (int argc, char *argv[])
 	if ((thisline = malloc(thislinesize + 1)) == NULL)
 		err(1, "malloc");
 
-	while ((p = fgetln(ifp, &psize)) != NULL) {
+	while ((psize = getline(&p, &bufsize, ifp)) != -1) {
 		if (psize > thislinesize) {
 			if ((thisline = realloc(thisline, psize + 1)) == NULL)
 				err(1, "realloc");
@@ -175,6 +176,7 @@ main (int argc, char *argv[])
 			++repeats;
 	}
 	show(ofp, prevline);
+	free(p);
 	free(prevline);
 	free(thisline);
 	return 0;

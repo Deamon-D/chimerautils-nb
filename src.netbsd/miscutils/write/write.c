@@ -95,10 +95,8 @@ main(int argc, char **argv)
 	case 3:
 		if (!strncmp(argv[2], _PATH_DEV, strlen(_PATH_DEV)))
 			argv[2] += strlen(_PATH_DEV);
-		struct passwd *pw = getpwnam(argv[1]);
-		if (pw == NULL)
+		if (uid_from_user(argv[1], &uid) == -1)
 			errx(1, "%s: unknown user", argv[1]);
-		uid = pw->pw_uid;
 		if (utmp_chk(argv[1], argv[2]))
 			errx(1, "%s is not logged in on %s",
 			    argv[1], argv[2]);
@@ -161,10 +159,9 @@ search_utmp(char *user, char *mytty, uid_t myuid, gid_t saved_egid)
 	int fd, nfd;
 	uid_t uid;
 
-	struct passwd *pw = getpwnam(user);
-	if (pw == NULL)
+	if (uid_from_user(user, &uid) == -1)
 		errx(1, "%s: unknown user", user);
-	uid = pw->pw_uid;
+
 	(void)getutentries(NULL, &ep);
 
 	nloggedttys = nttys = 0;

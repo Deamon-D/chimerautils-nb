@@ -151,7 +151,6 @@ terminate(int signo)
 {
 
 	summary();
-	(void)raise_default_signal(signo);
 	_exit(127);
 }
 

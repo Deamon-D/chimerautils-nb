@@ -50,7 +50,6 @@ __RCSID("$NetBSD: mv.c,v 1.46 2020/06/24 16:58:12 riastradh Exp $");
 #include <sys/time.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
-#include <sys/extattr.h>
 
 #include <err.h>
 #include <errno.h>
@@ -319,10 +318,10 @@ err:		if (unlink(to))
 		(void)close(to_fd);
 		return (1);
 	}
-
+#if 0
 	if (fcpxattr(from_fd, to_fd) == -1)
 		warn("%s: error copying extended attributes", to);
-
+#endif
 	(void)close(from_fd);
 #ifdef BSD4_4
 #if defined(__NetBSD__)
@@ -355,9 +354,10 @@ err:		if (unlink(to))
 	}
 	if (fchmod(to_fd, sbp->st_mode))
 		warn("%s: set mode", to);
+#if 0
 	if (fchflags(to_fd, sbp->st_flags) && (errno != EOPNOTSUPP))
 		warn("%s: set flags (was: 0%07o)", to, sbp->st_flags);
-
+#endif
 	if (close(to_fd)) {
 		warn("%s", to);
 		return (1);

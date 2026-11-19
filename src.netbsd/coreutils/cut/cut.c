@@ -226,14 +226,15 @@ get_list(char *list)
 static void
 b_n_cut(FILE *fp, const char *fname)
 {
-	size_t col, i, lbuflen;
-	char *lbuf;
+	size_t col, i, bufsize = 0;
+	ssize_t lbuflen;
+	char *lbuf = NULL;
 	int canwrite, clen, warned;
 	mbstate_t mbs;
 
 	memset(&mbs, 0, sizeof(mbs));
 	warned = 0;
-	while ((lbuf = fgetln(fp, &lbuflen)) != NULL) {
+	while ((lbuflen = getline(&lbuf, &bufsize, fp)) != -1) {
 		for (col = 0; lbuflen > 0; col += clen) {
 			if ((clen = mbrlen(lbuf, lbuflen, &mbs)) < 0) {
 				if (!warned) {
@@ -282,6 +283,8 @@ b_n_cut(FILE *fp, const char *fname)
 		if (lbuflen > 0)
 			putchar('\n');
 	}
+
+	free(lbuf);
 }
 
 static void
@@ -291,10 +294,11 @@ f_cut(FILE *fp, const char *fname __unused)
 	int ch, field, isdelim;
 	char *pos, *p, sep;
 	int output;
-	size_t len;
+	size_t bufsize = 0;
+	ssize_t len;
 	char *lbuf, *tbuf;
 
-	for (sep = dchar, tbuf = NULL; (lbuf = fgetln(fp, &len)) != NULL;) {
+	for (sep = dchar, tbuf = NULL; (len = getline(&lbuf, &bufsize, fp)) != -1;) {
 		output = 0;
 		if (lbuf[len - 1] != '\n') {
 			/* no newline at the end of the last line so add one */

@@ -54,6 +54,7 @@ __RCSID("$NetBSD: args.c,v 1.43.4.1 2026/02/02 17:49:07 martin Exp $");
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "dd.h"
 #include "extern.h"
@@ -94,6 +95,7 @@ static void	f_of(char *);
 static void	f_seek(char *);
 static void	f_skip(char *);
 static void	f_progress(char *);
+static long long	strsuftoll(const char *, const char *, long long, long long);
 
 static const struct arg {
 	const char *name;
@@ -441,7 +443,9 @@ static const struct ioflag {
 } olist[] = {
      /* the array needs to be sorted by the first column so
 	bsearch() can be used to find commands quickly */
+#ifdef O_ALT_IO
 	{ "alt_io",	O_ALT_IO,	C_IFLAG|C_OFLAG	},
+#endif
 	{ "append",	O_APPEND,	C_OFLAG		},
 	{ "async",	O_ASYNC,	C_IFLAG|C_OFLAG	},
 	{ "cloexec",	O_CLOEXEC,	C_IFLAG|C_OFLAG	},
@@ -450,15 +454,21 @@ static const struct ioflag {
 	{ "directory",	O_DIRECTORY,	C_NONE		},
 	{ "dsync",	O_DSYNC,	C_OFLAG		},
 	{ "excl",	O_EXCL,		C_OFLAG		},
+#ifdef O_EXLOCK
 	{ "exlock",	O_EXLOCK,	C_IFLAG|C_OFLAG	},
+#endif
 	{ "noctty",	O_NOCTTY,	C_IFLAG|C_OFLAG	},
 	{ "nofollow",	O_NOFOLLOW,	C_IFLAG|C_OFLAG	},
 	{ "nonblock",	O_NONBLOCK,	C_IFLAG|C_OFLAG	},
+#ifdef O_NOSIGPIPE
 	{ "nosigpipe",	O_NOSIGPIPE,	C_IFLAG|C_OFLAG	},
+#endif
 	{ "rdonly",	O_RDONLY,	C_IFLAG		},
 	{ "rdwr",	O_RDWR,		C_IFLAG		},
 	{ "rsync",	O_RSYNC,	C_IFLAG		},
+#ifdef O_SHLOCK
 	{ "shlock",	O_SHLOCK,	C_IFLAG|C_OFLAG	},
+#endif
 	{ "sync",	O_SYNC,		C_IFLAG|C_OFLAG	},
 	{ "trunc",	O_TRUNC,	C_OFLAG		},
 	{ "wronly",	O_WRONLY,	C_OFLAG		},
@@ -505,3 +515,101 @@ c_ioflag(const void *a, const void *b)
 	    ((const struct ioflag *)b)->name));
 }
 #endif	/* NO_IOFLAG */
+
+static long long
+strsuftoll(const char *desc, const char *val, long long min, long long max)
+{
+	static int depth;
+	long long num, t;
+	char	*expr;
+
+	if (depth > 16)
+		errx(EXIT_FAILURE, "%s: Recursion limit exceeded", desc);
+
+	while (isspace((unsigned char)*val))	/* Skip leading space */
+		val++;
+
+	errno = 0;
+	num = strtoll(val, &expr, 10);
+	if (errno == ERANGE)
+		goto erange;			/* Overflow */
+
+	if (expr == val)			/* No digits */
+		goto badnum;
+
+	switch (*expr) {
+	case 'b':
+		t = num;
+		num *= 512;			/* 1 block */
+		if (t > num)
+			goto erange;
+		++expr;
+		break;
+	case 'k':
+		t = num;
+		num *= 1024;			/* 1 kibibyte */
+		if (t > num)
+			goto erange;
+		++expr;
+		break;
+	case 'm':
+		t = num;
+		num *= 1048576;			/* 1 mebibyte */
+		if (t > num)
+			goto erange;
+		++expr;
+		break;
+	case 'g':
+		t = num;
+		num *= 1073741824;		/* 1 gibibyte */
+		if (t > num)
+			goto erange;
+		++expr;
+		break;
+	case 't':
+		t = num;
+		num *= 1099511627776LL;		/* 1 tebibyte */
+		if (t > num)
+			goto erange;
+		++expr;
+		break;
+	case 'w':
+		t = num;
+		num *= sizeof(int);		/* 1 word */
+		if (t > num)
+			goto erange;
+		++expr;
+		break;
+	}
+
+	switch (*expr) {
+	case '\0':
+		break;
+	case '*':				/* Backward compatible */
+	case 'x':
+		t = num;
+		++depth;
+		num *= strsuftoll(desc, expr + 1, min, max);
+		if (t > num) {
+ erange:	 	
+			errno = ERANGE;
+                        errx(EXIT_FAILURE, "%s: %s", desc, strerror(errno));
+		}
+		break;
+	default:
+ badnum:
+		errx(EXIT_FAILURE, "%s: '%s': illegal number", desc, val);
+	}
+	if (num < min) {
+		/* LONGLONG */
+                errx(EXIT_FAILURE, "%s: %lld is less than %lld", desc,
+                     (long long)num, (long long)min);
+	}
+	if (num > max) {
+		/* LONGLONG */
+                errx(EXIT_FAILURE, "%s: %lld is greater than %lld", desc,
+                     (long long)num, (long long)max);
+	}
+
+	return num;
+}

@@ -1,7 +1,8 @@
 touch_prog = executable(
     'touch',
     ['touch.c'],
-    include_directories: [inc],
+    dependencies : [libm],
+    include_directories: [inc, cinc],
     link_with: [libcompat],
     install: true,
 )

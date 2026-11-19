@@ -71,8 +71,10 @@ const struct modes cmodes[] = {
 	{ "hup",	HUPCL },
 	{ "clocal",	CLOCAL },
 	{ "crtscts",	CRTSCTS },
+#if 0
 	{ "mdmbuf",	MDMBUF },
 	{ "cdtrcts",	CDTRCTS },
+#endif
 	{ .name = NULL },
 };
 
@@ -125,7 +127,7 @@ const struct modes lmodes[] = {
 	{ "echok",	ECHOK },
 	{ "echoke",	ECHOKE },
 	{ "crtkill",	ECHOKE },
-	{ "altwerase",	ALTWERASE },
+	{ "altwerase",	VWERASE },
 	{ "iexten",	IEXTEN },
 	{ "echonl",	ECHONL },
 	{ "echoctl",	ECHOCTL },
@@ -138,7 +140,9 @@ const struct modes lmodes[] = {
 	{ "tostop",	TOSTOP },
 	{ "flusho",	FLUSHO },
 	{ "pendin",	PENDIN },
+#if 0
 	{ "nokerninfo",	NOKERNINFO },
+#endif
 	{ .name = NULL },
 };
 
@@ -147,8 +151,10 @@ const struct specialmodes lspecialmodes[] = {
 	{ "-crt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
 	{ "newcrt",	ECHOE|ECHOKE|ECHOCTL, ECHOK|ECHOPRT },
 	{ "-newcrt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
+#if 0
 	{ "kerninfo",	0, NOKERNINFO },
 	{ "-kerninfo",	NOKERNINFO, 0 },
+#endif
 	{ .name = NULL },
 };
 
@@ -156,7 +162,9 @@ const struct modes omodes[] = {
 	{ "opost",	OPOST },
 	{ "onlcr",	ONLCR },
 	{ "ocrnl",	OCRNL },
+#if 0
 	{ "oxtabs",	OXTABS },
+#endif
 	{ "onocr",	ONOCR },
 	{ "onlret",	ONLRET },
 	{ .name = NULL },
@@ -165,8 +173,10 @@ const struct modes omodes[] = {
 const struct specialmodes ospecialmodes[] = {
 	{ "litout",	0, OPOST },
 	{ "-litout",	OPOST, 0 },
+#if 0
 	{ "tabs",	0, OXTABS },		/* "preserve" tabs */
 	{ "-tabs",	OXTABS, 0 },
+#endif
 	{ .name = NULL },
 };
 

@@ -44,7 +44,6 @@ __RCSID("$NetBSD: forward.c,v 1.34 2024/01/14 17:37:32 christos Exp $");
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/mman.h>
-#include <sys/event.h>
 
 #include <limits.h>
 #include <fcntl.h>
@@ -88,9 +87,8 @@ void
 forward(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
 {
 	int ch, n;
-	int kq=-1, action=USE_SLEEP;
+	int action=USE_SLEEP;
 	struct stat statbuf;
-	struct kevent ev[2];
 
 	switch(style) {
 	case FBYTES:
@@ -171,13 +169,6 @@ forward(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
 		break;
 	}
 
-	if (fflag) {
-		kq = kqueue();
-		if (kq < 0)
-			xerr(1, "kqueue");
-		action = ADD_EVENTS;
-	}
-
 	for (;;) {
 		while ((ch = getc(fp)) != EOF)  {
 			if (putchar(ch) == EOF)
@@ -194,6 +185,7 @@ forward(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
 		clearerr(fp);
 
 		switch (action) {
+#if 0
 		case ADD_EVENTS:
 			n = 0;
 
@@ -232,7 +224,7 @@ forward(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
 				}
 			}
 			break;
-
+#endif
 		case USE_SLEEP:
 			/*
 			 * We pause for one second after displaying any data
@@ -252,17 +244,12 @@ forward(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
 						goto out;
 					}
 					*sbp = statbuf;
-					if (kq != -1)
-						action = ADD_EVENTS;
-				} else if (kq != -1)
-					action = USE_KQUEUE;
+				}
 			}
 			break;
 		}
 	}
 out:
-	if (fflag && kq != -1)
-		close(kq);
 }
 
 /*

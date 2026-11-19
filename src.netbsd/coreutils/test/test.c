@@ -28,6 +28,7 @@ __RCSID("$NetBSD: test.c,v 1.45 2022/08/27 21:18:39 dholland Exp $");
 #include <string.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <time.h>
 
 /* test(1) accepts the following grammar:
 	oexpr	::= aexpr | aexpr "-o" oexpr ;

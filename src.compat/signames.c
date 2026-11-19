@@ -170,3 +170,4 @@ int get_signame_by_idx(size_t idx, const char **signame, int *signum)
 
 }
 
+const int sys_nsig = ARRAY_SIZE(ul_signames);

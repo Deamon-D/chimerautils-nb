@@ -94,9 +94,10 @@ main(int argc, char **argv)
 static void
 parallel(int argc, char **argv)
 {
-	char ch, *dp, *line;
+	char ch, *dp, *line = NULL;
 	FILE **fpp, *fp;
-	size_t line_len;
+	size_t bufsize = 0;
+	ssize_t line_len;
 	int cnt, output;
 
 	fpp = calloc(argc, sizeof *fpp);
@@ -118,8 +119,8 @@ parallel(int argc, char **argv)
 			fp = fpp[cnt];
 			if (fp == NULL)
 				continue;
-			line = fgetln(fp, &line_len);
-			if (line == NULL) {
+			line_len = getline(&line, &bufsize, fp);
+			if (line_len == -1) {
 				/* Assume EOF */
 				if (fp != stdin)
 					fclose(fp);
@@ -154,6 +155,7 @@ parallel(int argc, char **argv)
 		putchar('\n');
 	}
 
+	free(line);
 	free(fpp);
 }
 

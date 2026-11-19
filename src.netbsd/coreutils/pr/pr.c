@@ -1573,7 +1573,6 @@ static void
 terminate(int which_sig)
 {
 	flsh_errs();
-	(void)raise_default_signal(which_sig);
 	exit(1);
 }
 

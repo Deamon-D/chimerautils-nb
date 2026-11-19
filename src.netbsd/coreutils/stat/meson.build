@@ -1,7 +1,8 @@
 stat_prog = executable(
     'stat',
     ['stat.c'],
-    include_directories: [inc],
+    include_directories: [inc, cinc],
+    c_args : ['-DHAVE_NBTOOL_CONFIG_H'],
     link_with: [libcompat],
     install: true,
 )

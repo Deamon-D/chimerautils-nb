@@ -70,7 +70,7 @@ __rec_open(const char *fname, int flags, mode_t mode, const RECNOINFO *openinfo,
 	dbp = NULL;
 	/* Open the user's file -- if this fails, we're done. */
 	if (fname != NULL) {
-		if ((rfd = __dbopen(fname, flags, mode, NULL)) == -1)
+		if ((rfd = open(fname, flags | O_CLOEXEC, mode)) == -1)
 			return NULL;
 	}
 

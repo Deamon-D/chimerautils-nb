@@ -46,7 +46,7 @@
 #define __RCSID(x)
 #define __RENAME(x)
 
-#define __dead
+#define __dead __attribute__((noreturn))
 #define __printflike(x, y) __attribute__((format(printf, x, y)))
 #define __arraycount(a) (sizeof(a) / sizeof(a[0]))
 

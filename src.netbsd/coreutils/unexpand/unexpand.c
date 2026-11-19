@@ -77,9 +77,10 @@ main(int argc, char **argv)
 {
 	int c;
 	char *ep, *tab;
-	char *line;
-	size_t len;
+	ssize_t len;
 	unsigned long i;
+	char *linebuf = NULL;
+	size_t bufsize = 0;
 
 	setprogname(argv[0]);
 
@@ -123,9 +124,12 @@ main(int argc, char **argv)
 				err(EXIT_FAILURE, "Cannot open `%s'", argv[0]);
 			argc--, argv++;
 		}
-		while ((line = fgetln(stdin, &len)) != NULL)
-			tabify(line, len);
+		while ((len = getline(&linebuf, &bufsize, stdin)) != -1)
+			tabify(linebuf, len);
+
 	} while (argc > 0);
+
+	free(linebuf);
 	return EXIT_SUCCESS;
 }
 

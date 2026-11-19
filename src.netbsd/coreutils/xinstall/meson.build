@@ -1,7 +1,8 @@
 xinstall_prog = executable(
     'xinstall',
-    ['xinstall.c'],
+    ['xinstall.c', 'getid.c'],
     include_directories: [inc, cinc],
+    c_args : ['-DHAVE_NBTOOL_CONFIG_H', '-Wno-format-truncation'],
     link_with: [libcompat],
     dependencies: [libcrypto],
 )

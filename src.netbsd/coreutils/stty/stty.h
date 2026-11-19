@@ -37,6 +37,8 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 
+typedef char linedn_t[32];
+
 struct info {
 	int fd;					/* file descriptor */
 	linedn_t ldisc;				/* line discipline */

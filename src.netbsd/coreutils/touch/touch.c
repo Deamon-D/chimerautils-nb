@@ -93,7 +93,7 @@ main(int argc, char *argv[])
 	struct timespec ts[2];
 	int aflag, cflag, Dflag, hflag, mflag, ch, fd, len, rval, timeset;
 	char *p;
-	int (*change_file_times)(const char *, const struct timespec *);
+        int utimensat_flag = 0;
 	int (*get_file_status)(const char *, struct stat *);
 
 	setlocale(LC_ALL, "");
@@ -152,10 +152,9 @@ main(int argc, char *argv[])
 
 	if (hflag) {
 		cflag = 1;		/* Don't create new file */
-		change_file_times = lutimens;
+		utimensat_flag = AT_SYMLINK_NOFOLLOW;
 		get_file_status = lstat;
 	} else {
-		change_file_times = utimens;
 		get_file_status = stat;
 	}
 
@@ -199,17 +198,17 @@ main(int argc, char *argv[])
 				continue;
 		}
 		if (!aflag)
-			ts[0] = sb.st_atimespec;
+			ts[0] = sb.st_atim;
 		if (!mflag)
-			ts[1] = sb.st_mtimespec;
+			ts[1] = sb.st_mtim;
 
 		if (Dflag &&
-		    timespeccmp(&ts[0], &sb.st_atimespec, ==) &&
-		    timespeccmp(&ts[1], &sb.st_mtimespec, ==))
+		    timespeccmp(&ts[0], &sb.st_atim, ==) &&
+		    timespeccmp(&ts[1], &sb.st_mtim, ==))
 			continue;
 
 		/* Try utimes(2). */
-		if (!(*change_file_times)(*argv, ts))
+		if (!utimensat(AT_FDCWD, *argv, ts, utimensat_flag))
 			continue;
 
 		/* If the user specified a time, nothing else we can do. */
@@ -224,7 +223,7 @@ main(int argc, char *argv[])
 		 * The permission checks are different, too, in that the
 		 * ability to write the file is sufficient.  Take a shot.
 		 */
-		 if (!(*change_file_times)(*argv, NULL))
+		 if (!utimensat(AT_FDCWD, *argv, NULL, utimensat_flag))
 			continue;
 
 		rval = EXIT_FAILURE;
@@ -355,8 +354,8 @@ stime_file(const char *fname, struct timespec *tsp,
 
 	if (statfunc(fname, &sb))
 		err(1, "%s", fname);
-	tsp[0] = sb.st_atimespec;
-	tsp[1] = sb.st_mtimespec;
+	tsp[0] = sb.st_atim;
+	tsp[1] = sb.st_mtim;
 }
 
 static int

@@ -61,7 +61,7 @@
 #define __MKTEMP_OK__	/* All uses of mktemp have been checked */
 
 #if HAVE_NBTOOL_CONFIG_H
-#include "nbtool_config.h"
+#define HAVE_POSIX_SPAWN 1
 #else
 #define HAVE_FUTIMES 1
 #define HAVE_POSIX_SPAWN 1
@@ -108,7 +108,6 @@ __RCSID("$NetBSD: xinstall.c,v 1.130.2.1 2026/07/20 08:55:28 martin Exp $");
 #endif
 
 #include <md5.h>
-#include <rmd160.h>
 #include <sha1.h>
 #include <sha2.h>
 
@@ -137,7 +136,6 @@ static char	*destdir;
 static enum {
 	DIGEST_NONE = 0,
 	DIGEST_MD5,
-	DIGEST_RMD160,
 	DIGEST_SHA1,
 	DIGEST_SHA256,
 	DIGEST_SHA384,
@@ -338,8 +336,6 @@ main(int argc, char *argv[])
 			digesttype = DIGEST_NONE;
 		} else if (strcmp(digest, "md5") == 0) {
 			digesttype = DIGEST_MD5;
-		} else if (strcmp(digest, "rmd160") == 0) {
-			digesttype = DIGEST_RMD160;
 		} else if (strcmp(digest, "sha1") == 0) {
 			digesttype = DIGEST_SHA1;
 		} else if (strcmp(digest, "sha256") == 0) {
@@ -573,9 +569,6 @@ makelink(char *from_name, char *to_name)
 				switch (digesttype) {
 				case DIGEST_MD5:
 					dres = MD5File(from_name, NULL);
-					break;
-				case DIGEST_RMD160:
-					dres = RMD160File(from_name, NULL);
 					break;
 				case DIGEST_SHA1:
 					dres = SHA1File(from_name, NULL);
@@ -872,7 +865,6 @@ copy(int from_fd, char *from_name, int to_fd, char *to_name, off_t size)
 	u_char	*p;
 	u_char	buf[MAXBSIZE];
 	MD5_CTX		ctxMD5;
-	RMD160_CTX	ctxRMD160;
 	SHA1_CTX	ctxSHA1;
 	SHA256_CTX	ctxSHA256;
 	SHA384_CTX	ctxSHA384;
@@ -881,9 +873,6 @@ copy(int from_fd, char *from_name, int to_fd, char *to_name, off_t size)
 	switch (digesttype) {
 	case DIGEST_MD5:
 		MD5Init(&ctxMD5);
-		break;
-	case DIGEST_RMD160:
-		RMD160Init(&ctxRMD160);
 		break;
 	case DIGEST_SHA1:
 		SHA1Init(&ctxSHA1);
@@ -938,9 +927,6 @@ copy(int from_fd, char *from_name, int to_fd, char *to_name, off_t size)
 			case DIGEST_MD5:
 				MD5Update(&ctxMD5, p, size);
 				break;
-			case DIGEST_RMD160:
-				RMD160Update(&ctxRMD160, p, size);
-				break;
 			case DIGEST_SHA1:
 				SHA1Update(&ctxSHA1, p, size);
 				break;
@@ -972,9 +958,6 @@ copy(int from_fd, char *from_name, int to_fd, char *to_name, off_t size)
 				case DIGEST_MD5:
 					MD5Update(&ctxMD5, buf, nr);
 					break;
-				case DIGEST_RMD160:
-					RMD160Update(&ctxRMD160, buf, nr);
-					break;
 				case DIGEST_SHA1:
 					SHA1Update(&ctxSHA1, buf, nr);
 					break;
@@ -1002,8 +985,6 @@ copy(int from_fd, char *from_name, int to_fd, char *to_name, off_t size)
 	switch (digesttype) {
 	case DIGEST_MD5:
 		return MD5End(&ctxMD5, NULL);
-	case DIGEST_RMD160:
-		return RMD160End(&ctxRMD160, NULL);
 	case DIGEST_SHA1:
 		return SHA1End(&ctxSHA1, NULL);
 	case DIGEST_SHA256:

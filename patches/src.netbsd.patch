@@ -52,6 +52,26 @@
  	    if (result != -1 || errno == 0) {
  		    result += Timezone * 60;
  		    if (DSTmode == DSTon)	/* if specified sumer time */
+--- src.orig/compat/pwcache.c
++++ src.netbsd/compat/pwcache.c
+@@ -103,6 +103,8 @@
+ __weak_alias(pwcache_groupdb,_pwcache_groupdb)
+ #endif
+ 
++#define HAVE_NBTOOL_CONFIG_H 1
++
+ #if !HAVE_PWCACHE_USERDB || HAVE_NBTOOL_CONFIG_H
+ #include "pwcache.h"
+ 
+@@ -117,6 +119,8 @@
+  * function pointers to various name lookup routines.
+  * these may be changed as necessary.
+  */
++static int setpassent(int stayopen __unused) { setpwent(); return 1; }
++static int setgroupent(int stayopen __unused) { setgrent(); return 1; }
+ static	int		(*_pwcache_setgroupent)(int)		= setgroupent;
+ static	void		(*_pwcache_endgrent)(void)		= endgrent;
+ static	struct group *	(*_pwcache_getgrnam)(const char *)	= getgrnam;
 --- src.orig/compat/setmode.c
 +++ src.netbsd/compat/setmode.c
 @@ -164,9 +164,10 @@
@@ -264,6 +284,2238 @@
  
  	return 0;
  }
+--- src.orig/coreutils/cksum/cksum.c
++++ src.netbsd/coreutils/cksum/cksum.c
+@@ -91,10 +91,7 @@
+ #include <errno.h>
+ #include <fcntl.h>
+ #include <locale.h>
+-#include <md2.h>
+-#include <md4.h>
+ #include <md5.h>
+-#include <rmd160.h>
+ #include <sha1.h>
+ #include <sha2.h>
+ #include <stdio.h>
+@@ -119,18 +116,9 @@
+ 	void (*filterfunc)(int);
+ 	char *(*filefunc)(const char *, char *);
+ } hashes[] = {
+-	{ "md2", "MD2",
+-	  MD2String, MD2TimeTrial, MD2TestSuite,
+-	  MD2Filter, MD2File },
+-	{ "md4", "MD4",
+-	  MD4String, MD4TimeTrial, MD4TestSuite,
+-	  MD4Filter, MD4File },
+ 	{ "md5", "MD5",
+ 	  MD5String, MD5TimeTrial, MD5TestSuite,
+ 	  MD5Filter, MD5File },
+-	{ "rmd160", "RMD160",
+-	  RMD160String, RMD160TimeTrial, RMD160TestSuite,
+-	  RMD160Filter, (_filefunc) RMD160File },
+ 	{ "sha1", "SHA1",
+ 	  SHA1String, SHA1TimeTrial, SHA1TestSuite,
+ 	  SHA1Filter, (_filefunc) SHA1File },
+@@ -556,10 +544,7 @@
+ 	    sumargs, fileargs);
+ 	(void)fprintf(stderr, "       sum %s\n           %s\n",
+ 	    sumargs, fileargs);
+-	(void)fprintf(stderr, "       md2 %s %s\n", hashargs, fileargs);
+-	(void)fprintf(stderr, "       md4 %s %s\n", hashargs, fileargs);
+ 	(void)fprintf(stderr, "       md5 %s %s\n", hashargs, fileargs);
+-	(void)fprintf(stderr, "       rmd160 %s %s\n", hashargs, fileargs);
+ 	(void)fprintf(stderr, "       sha1 %s %s\n", hashargs, fileargs);
+ 	exit(1);
+ }
+--- src.orig/coreutils/cksum/extern.h
++++ src.netbsd/coreutils/cksum/extern.h
+@@ -36,6 +36,7 @@
+ #endif
+ 
+ #include <sys/cdefs.h>
++#include <stdint.h>
+ #include "crc_extern.h"
+ 
+ __BEGIN_DECLS
+--- src.orig/coreutils/cksum/sha1.c
++++ src.netbsd/coreutils/cksum/sha1.c
+@@ -3,6 +3,12 @@
+ #include <sha1.h>	/* this hash type */
+ #include <md5.h>	/* the hash we're replacing */
+ 
++/* avoid redefinition warning */
++#undef MD5Data
++#undef MD5Init
++#undef MD5Update
++#undef MD5End
++
+ #define HASHTYPE	"SHA1"
+ #define HASHLEN		40
+ 
+--- src.orig/coreutils/cksum/sha256.c
++++ src.netbsd/coreutils/cksum/sha256.c
+@@ -7,6 +7,12 @@
+ #include <sha2.h>	/* this hash type */
+ #include <md5.h>	/* the hash we're replacing */
+ 
++/* avoid redefinition warning */
++#undef MD5Data
++#undef MD5Init
++#undef MD5Update
++#undef MD5End
++
+ #define HASHTYPE	"SHA256"
+ #define HASHLEN		64
+ 
+--- src.orig/coreutils/cksum/sha384.c
++++ src.netbsd/coreutils/cksum/sha384.c
+@@ -7,6 +7,12 @@
+ #include <sha2.h>	/* this hash type */
+ #include <md5.h>	/* the hash we're replacing */
+ 
++/* avoid redefinition warning */
++#undef MD5Data
++#undef MD5Init
++#undef MD5Update
++#undef MD5End
++
+ #define HASHTYPE	"SHA384"
+ #define HASHLEN		96
+ 
+--- src.orig/coreutils/cksum/sha512.c
++++ src.netbsd/coreutils/cksum/sha512.c
+@@ -7,6 +7,12 @@
+ #include <sha2.h>	/* this hash type */
+ #include <md5.h>	/* the hash we're replacing */
+ 
++/* avoid redefinition warning */
++#undef MD5Data
++#undef MD5Init
++#undef MD5Update
++#undef MD5End
++
+ #define HASHTYPE	"SHA512"
+ #define HASHLEN		128
+ 
+--- src.orig/coreutils/cp/utils.c
++++ src.netbsd/coreutils/cp/utils.c
+@@ -46,7 +46,6 @@
+ #ifndef SMALL
+ #include <sys/acl.h>
+ #endif
+-#include <sys/extattr.h>
+ 
+ #include <err.h>
+ #include <errno.h>
+@@ -68,11 +67,11 @@
+ {
+     struct timespec ts[2];
+ 
+-    ts[0] = fs->st_atimespec;
+-    ts[1] = fs->st_mtimespec;
++    ts[0] = fs->st_atim;
++    ts[1] = fs->st_mtim;
+ 
+-    if (lutimens(file, ts)) {
+-	warn("lutimens: %s", file);
++    if (utimensat(AT_FDCWD, file, ts, AT_SYMLINK_NOFOLLOW)) {
++	warn("utimensat: %s", file);
+ 	return (1);
+     }
+     return (0);
+@@ -255,9 +254,10 @@
+ 		}
+ 	}
+ 
++#if 0
+ 	if (pflag && (fcpxattr(from_fd, to_fd) != 0))
+ 		warn("%s: error copying extended attributes", to.p_path);
+-
++#endif
+ #ifndef SMALL
+ 	if (pflag && preserve_fd_acls(from_fd, to_fd) != 0)
+ 		rval = 1;
+@@ -387,7 +387,7 @@
+ 		warn("chmod: %s", to.p_path);
+ 		rval = 1;
+ 	}
+-
++#if 0
+ 	if (!islink && !Nflag) {
+ 		unsigned long fflags = fs->st_flags;
+ 		/*
+@@ -406,6 +406,7 @@
+ 				rval = 1;
+ 			}
+ 	}
++#endif
+ 	/* if fd is non-zero, caller must call set_utimes() after close() */
+ 	if (fd == 0 && set_utimes(to.p_path, fs))
+ 	    rval = 1;
+--- src.orig/coreutils/csplit/csplit.c
++++ src.netbsd/coreutils/csplit/csplit.c
+@@ -235,7 +235,6 @@
+ 	if (len < sizeof(msg))
+ 		(void)write(STDERR_FILENO, msg, len);
+ 	cleanup();
+-	(void)raise_default_signal(sig);
+ 	_exit(2);
+ }
+ 
+@@ -388,7 +387,7 @@
+ 	} else
+ 		ofs = 0;
+ 
+-	if (regcomp(&cre, re, REG_BASIC|REG_NOSUB) != 0)
++	if (regcomp(&cre, re, REG_NOSUB) != 0)
+ 		errx(1, "%s: bad regular expression", re);
+ 
+ 	if (*expr == '/')
+--- src.orig/coreutils/cut/cut.c
++++ src.netbsd/coreutils/cut/cut.c
+@@ -226,14 +226,15 @@
+ static void
+ b_n_cut(FILE *fp, const char *fname)
+ {
+-	size_t col, i, lbuflen;
+-	char *lbuf;
++	size_t col, i, bufsize = 0;
++	ssize_t lbuflen;
++	char *lbuf = NULL;
+ 	int canwrite, clen, warned;
+ 	mbstate_t mbs;
+ 
+ 	memset(&mbs, 0, sizeof(mbs));
+ 	warned = 0;
+-	while ((lbuf = fgetln(fp, &lbuflen)) != NULL) {
++	while ((lbuflen = getline(&lbuf, &bufsize, fp)) != -1) {
+ 		for (col = 0; lbuflen > 0; col += clen) {
+ 			if ((clen = mbrlen(lbuf, lbuflen, &mbs)) < 0) {
+ 				if (!warned) {
+@@ -282,6 +283,8 @@
+ 		if (lbuflen > 0)
+ 			putchar('\n');
+ 	}
++
++	free(lbuf);
+ }
+ 
+ static void
+@@ -291,10 +294,11 @@
+ 	int ch, field, isdelim;
+ 	char *pos, *p, sep;
+ 	int output;
+-	size_t len;
++	size_t bufsize = 0;
++	ssize_t len;
+ 	char *lbuf, *tbuf;
+ 
+-	for (sep = dchar, tbuf = NULL; (lbuf = fgetln(fp, &len)) != NULL;) {
++	for (sep = dchar, tbuf = NULL; (len = getline(&lbuf, &bufsize, fp)) != -1;) {
+ 		output = 0;
+ 		if (lbuf[len - 1] != '\n') {
+ 			/* no newline at the end of the last line so add one */
+--- src.orig/coreutils/date/date.c
++++ src.netbsd/coreutils/date/date.c
+@@ -65,6 +65,7 @@
+ #include <unistd.h>
+ #include <util.h>
+ #if !HAVE_NBTOOL_CONFIG_H
++#include <utmp.h>
+ #include <utmpx.h>
+ #endif
+ 
+@@ -349,7 +350,7 @@
+ static void
+ setthetime(const char *p)
+ {
+-	struct timeval tv;
++	struct timeval tv, utx_tv;
+ 	time_t new_time;
+ 	struct tm *lt;
+ 	const char *dot, *t, *op;
+@@ -534,8 +535,11 @@
+ #ifndef HAVE_NBTOOL_CONFIG_H
+ 	struct utmpx utx;
+ 	memset(&utx, 0, sizeof(utx));
++	memset(&utx_tv, 0, sizeof(utx_tv));
+ 	utx.ut_type = OLD_TIME;
+-	(void)gettimeofday(&utx.ut_tv, NULL);
++	(void)gettimeofday(&utx_tv, NULL);
++	utx.ut_tv.tv_sec = utx_tv.tv_sec;
++	utx.ut_tv.tv_usec = utx_tv.tv_usec;
+ 	pututxline(&utx);
+ 
+ 	if (nflag || netsettime(new_time)) {
+@@ -555,7 +559,9 @@
+ 		logwtmp("{", "date", "");
+ 	}
+ 	utx.ut_type = NEW_TIME;
+-	(void)gettimeofday(&utx.ut_tv, NULL);
++	(void)gettimeofday(&utx_tv, NULL);
++	utx.ut_tv.tv_sec = utx_tv.tv_sec;
++	utx.ut_tv.tv_usec = utx_tv.tv_usec;
+ 	pututxline(&utx);
+ 
+ 	if ((p = getlogin()) == NULL)
+--- src.orig/coreutils/dd/args.c
++++ src.netbsd/coreutils/dd/args.c
+@@ -54,6 +54,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <ctype.h>
+ 
+ #include "dd.h"
+ #include "extern.h"
+@@ -94,6 +95,7 @@
+ static void	f_seek(char *);
+ static void	f_skip(char *);
+ static void	f_progress(char *);
++static long long	strsuftoll(const char *, const char *, long long, long long);
+ 
+ static const struct arg {
+ 	const char *name;
+@@ -441,7 +443,9 @@
+ } olist[] = {
+      /* the array needs to be sorted by the first column so
+ 	bsearch() can be used to find commands quickly */
++#ifdef O_ALT_IO
+ 	{ "alt_io",	O_ALT_IO,	C_IFLAG|C_OFLAG	},
++#endif
+ 	{ "append",	O_APPEND,	C_OFLAG		},
+ 	{ "async",	O_ASYNC,	C_IFLAG|C_OFLAG	},
+ 	{ "cloexec",	O_CLOEXEC,	C_IFLAG|C_OFLAG	},
+@@ -450,15 +454,21 @@
+ 	{ "directory",	O_DIRECTORY,	C_NONE		},
+ 	{ "dsync",	O_DSYNC,	C_OFLAG		},
+ 	{ "excl",	O_EXCL,		C_OFLAG		},
++#ifdef O_EXLOCK
+ 	{ "exlock",	O_EXLOCK,	C_IFLAG|C_OFLAG	},
++#endif
+ 	{ "noctty",	O_NOCTTY,	C_IFLAG|C_OFLAG	},
+ 	{ "nofollow",	O_NOFOLLOW,	C_IFLAG|C_OFLAG	},
+ 	{ "nonblock",	O_NONBLOCK,	C_IFLAG|C_OFLAG	},
++#ifdef O_NOSIGPIPE
+ 	{ "nosigpipe",	O_NOSIGPIPE,	C_IFLAG|C_OFLAG	},
++#endif
+ 	{ "rdonly",	O_RDONLY,	C_IFLAG		},
+ 	{ "rdwr",	O_RDWR,		C_IFLAG		},
+ 	{ "rsync",	O_RSYNC,	C_IFLAG		},
++#ifdef O_SHLOCK
+ 	{ "shlock",	O_SHLOCK,	C_IFLAG|C_OFLAG	},
++#endif
+ 	{ "sync",	O_SYNC,		C_IFLAG|C_OFLAG	},
+ 	{ "trunc",	O_TRUNC,	C_OFLAG		},
+ 	{ "wronly",	O_WRONLY,	C_OFLAG		},
+@@ -505,3 +515,101 @@
+ 	    ((const struct ioflag *)b)->name));
+ }
+ #endif	/* NO_IOFLAG */
++
++static long long
++strsuftoll(const char *desc, const char *val, long long min, long long max)
++{
++	static int depth;
++	long long num, t;
++	char	*expr;
++
++	if (depth > 16)
++		errx(EXIT_FAILURE, "%s: Recursion limit exceeded", desc);
++
++	while (isspace((unsigned char)*val))	/* Skip leading space */
++		val++;
++
++	errno = 0;
++	num = strtoll(val, &expr, 10);
++	if (errno == ERANGE)
++		goto erange;			/* Overflow */
++
++	if (expr == val)			/* No digits */
++		goto badnum;
++
++	switch (*expr) {
++	case 'b':
++		t = num;
++		num *= 512;			/* 1 block */
++		if (t > num)
++			goto erange;
++		++expr;
++		break;
++	case 'k':
++		t = num;
++		num *= 1024;			/* 1 kibibyte */
++		if (t > num)
++			goto erange;
++		++expr;
++		break;
++	case 'm':
++		t = num;
++		num *= 1048576;			/* 1 mebibyte */
++		if (t > num)
++			goto erange;
++		++expr;
++		break;
++	case 'g':
++		t = num;
++		num *= 1073741824;		/* 1 gibibyte */
++		if (t > num)
++			goto erange;
++		++expr;
++		break;
++	case 't':
++		t = num;
++		num *= 1099511627776LL;		/* 1 tebibyte */
++		if (t > num)
++			goto erange;
++		++expr;
++		break;
++	case 'w':
++		t = num;
++		num *= sizeof(int);		/* 1 word */
++		if (t > num)
++			goto erange;
++		++expr;
++		break;
++	}
++
++	switch (*expr) {
++	case '\0':
++		break;
++	case '*':				/* Backward compatible */
++	case 'x':
++		t = num;
++		++depth;
++		num *= strsuftoll(desc, expr + 1, min, max);
++		if (t > num) {
++ erange:	 	
++			errno = ERANGE;
++                        errx(EXIT_FAILURE, "%s: %s", desc, strerror(errno));
++		}
++		break;
++	default:
++ badnum:
++		errx(EXIT_FAILURE, "%s: '%s': illegal number", desc, val);
++	}
++	if (num < min) {
++		/* LONGLONG */
++                errx(EXIT_FAILURE, "%s: %lld is less than %lld", desc,
++                     (long long)num, (long long)min);
++	}
++	if (num > max) {
++		/* LONGLONG */
++                errx(EXIT_FAILURE, "%s: %lld is greater than %lld", desc,
++                     (long long)num, (long long)max);
++	}
++
++	return num;
++}
+--- src.orig/coreutils/dd/dd.h
++++ src.netbsd/coreutils/dd/dd.h
+@@ -36,6 +36,7 @@
+  */
+ 
+ #include <sys/stat.h>
++#include <stdint.h>
+ 
+ struct ddfops {
+ 	int (*op_init)(void);
+--- src.orig/coreutils/dd/dd_swab.c
++++ src.netbsd/coreutils/dd/dd_swab.c
+@@ -65,7 +65,7 @@
+ 	tp = (char *)to;
+ #define	STEP	temp = *fp++,*tp++ = *fp++,*tp++ = temp
+ 
+-	if (__predict_false(len == 1)) {
++	if (len == 1) {
+ 		STEP;
+ 		return;
+ 	}
+--- src.orig/coreutils/dd/misc.c
++++ src.netbsd/coreutils/dd/misc.c
+@@ -151,7 +151,6 @@
+ {
+ 
+ 	summary();
+-	(void)raise_default_signal(signo);
+ 	_exit(127);
+ }
+ 
+--- src.orig/coreutils/df/df.c
++++ src.netbsd/coreutils/df/df.c
+@@ -50,7 +50,7 @@
+ #endif /* not lint */
+ 
+ #include <sys/param.h>
+-#include <sys/stat.h>
++#include <sys/statvfs.h>
+ #include <sys/mount.h>
+ 
+ #include <assert.h>
+@@ -65,17 +65,45 @@
+ #include <string.h>
+ #include <unistd.h>
+ #include <util.h>
++#include <mntent.h>
++#include <paths.h>
++#include <inttypes.h>
++
++#define MNT_IGNORE	0x01
++#define MNT_LOCAL	0x02
++
++#define MNAMELEN	32
++
++/* combining data from getmntent() and statvfs() on Linux */
++struct mntinfo {
++    char f_mntfromname[MNAMELEN]; /* mnt_fsname from getmntent */
++    char f_mntonname[MNAMELEN];	  /* mnt_dir from getmntent */
++    char f_fstypename[MNAMELEN];  /* mnt_fsname from getmntent */
++    unsigned long f_bsize;	  /* f_bsize from statvfs */
++    unsigned long f_frsize;	  /* f_bsize from statvfs */
++    unsigned long f_namemax;      /* f_namemax from statvfs */
++    fsblkcnt_t f_blocks;          /* f_blocks from statvfs */
++    fsblkcnt_t f_bfree;           /* f_bfree from statvfs */
++    fsblkcnt_t f_bavail;          /* f_bavail from statvfs */
++    fsblkcnt_t f_bresvd;          /* f_bfree - f_bavail */
++    fsfilcnt_t f_files;           /* f_files from statvfs */
++    fsfilcnt_t f_ffree;           /* f_ffree from statvfs */
++    fsfilcnt_t f_favail;          /* f_favail from statvfs */
++    unsigned long f_fsid;         /* f_fsid from statvfs */
++    unsigned long f_flag;         /* f_flag from statvfs */
++};
+ 
+ static char	*getmntpt(const char *);
+-static void	 addstat(struct statvfs *, const struct statvfs *);
+-static void	 prtstat(const struct statvfs *, int);
++static void	 addstat(struct mntinfo *, const struct mntinfo *);
++static void	 prtstat(const struct mntinfo *, int);
+ static int	 selected(const char *, size_t);
+ static void	 maketypelist(char *);
+-static size_t	 regetmntinfo(struct statvfs **, size_t);
++static size_t	 regetmntinfo(struct mntinfo **, size_t);
+ __dead static void usage(void);
+ static void	 prthumanval(bool, int64_t, int);
+-static void	 prthuman(const struct statvfs *, int64_t, int64_t);
+-
++static void	 prthuman(const struct mntinfo *, int64_t, int64_t);
++static int	 getmntinfo(struct mntinfo **);
++static int	 mntinfo(const char *path, struct mntinfo *st);
+ static int	 aflag, cflag, fflag, gflag, hflag, iflag, lflag;
+ static int	 Mflag, Nflag, nflag, Pflag, qflag, Wflag;
+ static long	 usize;
+@@ -95,7 +123,7 @@
+ main(int argc, char *argv[])
+ {
+ 	struct stat stbuf;
+-	struct statvfs *mntbuf, totals;
++	struct mntinfo *mntbuf, totals;
+ 	int ch, maxwidth, width;
+ 	size_t i;
+ 	char *mntpt;
+@@ -200,7 +228,7 @@
+ 	argc -= optind;
+ 	argv += optind;
+ 
+-	mntcount = getmntinfo(&mntbuf, MNT_NOWAIT);
++	mntcount = getmntinfo(&mntbuf);
+ 	if (mntcount == 0)
+ 		err(EXIT_FAILURE,
+ 		    "retrieving information on mounted file systems");
+@@ -228,7 +256,7 @@
+ 			 * Statfs does not take a `wait' flag, so we cannot
+ 			 * implement nflag here.
+ 			 */
+-			if (!statvfs(mntpt, &mntbuf[mntcount])) {
++			if (!mntinfo(mntpt, &mntbuf[mntcount])) {
+ 				if (Mflag &&
+ 				    !streq(mntpt, mntbuf[mntcount].f_mntonname))
+ 					warnq(("%s is not a mount point",
+@@ -261,10 +289,6 @@
+ 	maxwidth = 0;
+ 	for (i = 0; i < mntcount; i++) {
+ 		width = 0;
+-		if (Wflag && mntbuf[i].f_mntfromlabel[0]) {
+-			/* +5 is for "NAME=" added later */
+-			width = (int)strlen(mntbuf[i].f_mntfromlabel) + 5;
+-		}
+ 		if (width == 0)
+ 			width = (int)strlen(mntbuf[i].f_mntfromname);
+ 		if (width > maxwidth)
+@@ -288,9 +312,9 @@
+ getmntpt(const char *name)
+ {
+ 	size_t count, i;
+-	struct statvfs *mntbuf;
++	struct mntinfo *mntbuf;
+ 
+-	count = getmntinfo(&mntbuf, MNT_NOWAIT);
++	count = getmntinfo(&mntbuf);
+ 	if (count == 0)
+ 		err(EXIT_FAILURE, "Can't get mount information");
+ 	for (i = 0; i < count; i++) {
+@@ -360,13 +384,13 @@
+  * current (not cached) info.  Returns the new count of valid statvfs bufs.
+  */
+ static size_t
+-regetmntinfo(struct statvfs **mntbufp, size_t count)
++regetmntinfo(struct mntinfo **mntbufp, size_t count)
+ {
+ 	size_t i, j;
+-	struct statvfs *mntbuf;
++	struct mntinfo *mntbuf;
+ 
+ 	if (!lflag && typelist == NULL && aflag)
+-		return nflag ? count : (size_t)getmntinfo(mntbufp, MNT_WAIT);
++		return nflag ? count : (size_t)getmntinfo(mntbufp);
+ 
+ 	mntbuf = *mntbufp;
+ 	j = 0;
+@@ -381,8 +405,8 @@
+ 		if (nflag)
+ 			mntbuf[j] = mntbuf[i];
+ 		else {
+-			struct statvfs layerbuf = mntbuf[i];
+-			(void)statvfs(mntbuf[i].f_mntonname, &mntbuf[j]);
++			struct mntinfo layerbuf = mntbuf[i];
++			(void)mntinfo(mntbuf[i].f_mntonname, &mntbuf[j]);
+ 			/*
+ 			 * If the FS name changed, then new data is for
+ 			 * a different layer and we don't want it.
+@@ -410,7 +434,7 @@
+ }
+ 
+ static void
+-prthuman(const struct statvfs *sfsp, int64_t used, int64_t bavail)
++prthuman(const struct mntinfo *sfsp, int64_t used, int64_t bavail)
+ {
+ 
+ 	prthumanval(true,
+@@ -434,7 +458,7 @@
+ 	    (int64_t)(num) * (int64_t)((fsbs) / (bs)))
+ 
+ static void
+-addstat(struct statvfs *totalfsp, const struct statvfs *sfsp)
++addstat(struct mntinfo *totalfsp, const struct mntinfo *sfsp)
+ {
+ 	uint64_t frsize;
+ 
+@@ -446,14 +470,13 @@
+ 	totalfsp->f_files += sfsp->f_files;
+ 	totalfsp->f_ffree += sfsp->f_ffree;
+ 	totalfsp->f_favail += sfsp->f_favail;
+-	totalfsp->f_fresvd += sfsp->f_fresvd;
+ }
+ 
+ /*
+  * Print out status about a filesystem.
+  */
+ static void
+-prtstat(const struct statvfs *sfsp, int maxwidth)
++prtstat(const struct mntinfo *sfsp, int maxwidth)
+ {
+ 	static long blocksize;
+ 	static int headerlen, timesthrough;
+@@ -463,14 +486,6 @@
+ 	int64_t used, availblks, inodes;
+ 	int64_t bavail;
+ 	char pb[64];
+-	char mntfromname[sizeof(sfsp->f_mntfromname) + 10];
+-
+-	if (Wflag && sfsp->f_mntfromlabel[0]) {
+-		snprintf(mntfromname, sizeof(mntfromname), "NAME=%s",
+-		    sfsp->f_mntfromlabel);
+-	} else {
+-		strlcpy(mntfromname, sfsp->f_mntfromname, sizeof(mntfromname));
+-	}
+ 
+ 	if (gflag) {
+ 		/*
+@@ -483,7 +498,7 @@
+ 		 *
+ 		 */
+ 		(void)printf("%10s (%-12s): %7ld block size %12ld frag size\n",
+-		    sfsp->f_mntonname, mntfromname,
++		    sfsp->f_mntonname, sfsp->f_mntfromname,
+ 		    sfsp->f_bsize,	/* On UFS/FFS systems this is
+ 					 * also called the "optimal
+ 					 * transfer block size" but it
+@@ -506,9 +521,6 @@
+ 		(void)printf("%10s fstype  %#15lx flag  %17ld filename "
+ 		    "length\n", sfsp->f_fstypename, sfsp->f_flag,
+ 		    sfsp->f_namemax);
+-		(void)printf("%10lu owner %17" PRId64 " syncwrites %12" PRId64
+-		    " asyncwrites\n\n", (unsigned long)sfsp->f_owner,
+-		    sfsp->f_syncwrites, sfsp->f_asyncwrites);
+ 
+ 		/*
+ 		 * a concession by the structured programming police to the
+@@ -580,7 +592,7 @@
+ 		}
+ 	}
+ 	used = sfsp->f_blocks - sfsp->f_bfree;
+-	bavail = sfsp->f_bfree - sfsp->f_bresvd;
++	bavail = sfsp->f_bavail;
+ 	availblks = bavail + used;
+ 	if (Pflag) {
+ 		assert(hflag == 0);
+@@ -591,7 +603,7 @@
+ 		 * <file system root>
+ 		 */
+ 		(void)printf("%s %" PRId64 " %" PRId64 " %" PRId64 " %s%% %s\n",
+-		    mntfromname,
++		    sfsp->f_mntfromname,
+ 		    fsbtoblk(sfsp->f_blocks, sfsp->f_frsize, blocksize),
+ 		    fsbtoblk(used, sfsp->f_frsize, blocksize),
+ 		    fsbtoblk(bavail, sfsp->f_frsize, blocksize),
+@@ -622,7 +634,7 @@
+ 		return;
+ 	}
+ 
+-	(void)printf("%-*.*s ", maxwidth, maxwidth, mntfromname);
++	(void)printf("%-*.*s ", maxwidth, maxwidth, sfsp->f_mntfromname);
+ 
+ 	if (hflag)
+ 		prthuman(sfsp, used, bavail);
+@@ -667,3 +679,97 @@
+ 	exit(1);
+ 	/* NOTREACHED */
+ }
++
++static int
++mntinfo(const char *path, struct mntinfo *mnt)
++{
++	struct statvfs st;
++	if (statvfs(path, &st) < 0)
++		return -1;
++
++	mnt->f_bsize = st.f_bsize;
++	mnt->f_frsize = st.f_frsize;
++	mnt->f_namemax = st.f_namemax;
++
++	mnt->f_blocks = st.f_blocks;
++	mnt->f_bfree = st.f_bfree;
++	mnt->f_bavail = st.f_bavail;
++	mnt->f_bresvd = st.f_bfree - st.f_bavail;
++
++	mnt->f_files = st.f_files;
++	mnt->f_ffree = st.f_ffree;
++	mnt->f_favail = st.f_favail;
++
++	mnt->f_fsid = st.f_fsid;
++	mnt->f_flag = st.f_flag;
++
++	mnt->f_mntfromname[0] = '\0';
++	mnt->f_mntonname[0] = '\0';
++	mnt->f_fstypename[0] = '\0';
++	return 0;
++}
++
++static int
++getmntinfo(struct mntinfo **mntbufp)
++{
++	FILE *fp = NULL;
++	int mntsize = 0;
++	struct mntinfo mnt;
++	struct mntent *ent = NULL;
++	struct mntinfo *list = NULL;
++	struct mntinfo *current = NULL;
++
++#ifdef _PATH_MOUNTED
++	fp = setmntent(_PATH_MOUNTED, "r");
++#else
++	if (access("/proc/self/mounts", R_OK) == 0) {
++		fp = setmntent("/proc/self/mounts", "r");
++	} else if (access("/proc/mounts", R_OK) == 0) {
++		fp = setmntent("/proc/mounts", "r");
++	} else if (access("/etc/mtab", R_OK) == 0) {
++		fp = setmntent("/etc/mtab", "r");
++	}
++#endif
++
++	if (fp == NULL)
++		return 0;
++
++	while ((ent = getmntent(fp)) != NULL) {
++		if (hasmntopt(ent, MNTTYPE_IGNORE) != NULL)
++			continue;
++		if (mntinfo(ent->mnt_dir, &mnt) < 0)
++			return 0;
++		if (mnt.f_blocks == 0)
++			continue;
++
++		list = realloc(list, (mntsize + 1) * sizeof(*list));
++		assert(list != NULL);
++		current = list + mntsize;
++
++		current->f_bsize = mnt.f_bsize;
++		current->f_frsize = mnt.f_frsize;
++		current->f_namemax = mnt.f_namemax;
++
++		current->f_blocks = mnt.f_blocks;
++		current->f_bfree = mnt.f_bfree;
++		current->f_bavail = mnt.f_bavail;
++		current->f_bresvd = mnt.f_bfree - mnt.f_bavail;
++
++		current->f_files = mnt.f_files;
++		current->f_ffree = mnt.f_ffree;
++		current->f_favail = mnt.f_favail;
++
++		current->f_fsid = mnt.f_fsid;
++		current->f_flag = mnt.f_flag;
++
++		strlcpy(current->f_fstypename, ent->mnt_type, MNAMELEN);
++		strlcpy(current->f_mntfromname, ent->mnt_fsname, MNAMELEN);
++		strlcpy(current->f_mntonname, ent->mnt_dir, MNAMELEN);
++		mntsize++;
++	}
++
++	endmntent(fp);
++
++	*mntbufp = list;
++	return mntsize;
++}
+--- src.orig/coreutils/du/du.c
++++ src.netbsd/coreutils/du/du.c
+@@ -202,10 +202,12 @@
+ 				/* nothing */
+ 				break;
+ 			default:
++#ifdef UF_NODUMP
+ 				if (p->fts_statp->st_flags & UF_NODUMP) {
+ 					fts_set(fts, p, FTS_SKIP);
+ 					continue;
+ 				}
++#endif
+ 			}
+ 		}
+ 		switch (p->fts_info) {
+--- src.orig/coreutils/env/env.c
++++ src.netbsd/coreutils/env/env.c
+@@ -49,6 +49,7 @@
+ #include <locale.h>
+ #include <errno.h>
+ #include <paths.h>
++#include <stddef.h>
+ 
+ static void usage(void) __dead;
+ static const char *path_find(const char *);
+--- src.orig/coreutils/expr/expr.y
++++ src.netbsd/coreutils/expr/expr.y
+@@ -302,7 +302,7 @@
+ 	regmatch_t rm[2];
+ 	int rc;
+ 
+-	if ((rc = regcomp(&rp, re, REG_BASIC)) != 0) {
++	if ((rc = regcomp(&rp, re, 0)) != 0) {
+ 		char errbuf[256];
+ 		(void)regerror(rc, &rp, errbuf, sizeof(errbuf));
+ 		yyerror("%s", errbuf);
+--- src.orig/coreutils/factor/factor.c
++++ src.netbsd/coreutils/factor/factor.c
+@@ -31,8 +31,8 @@
+  * SUCH DAMAGE.
+  */
+ 
+-#ifndef lint
+ #include <sys/cdefs.h>
++#ifndef lint
+ #ifdef __COPYRIGHT
+ __COPYRIGHT("@(#) Copyright (c) 1989, 1993\
+ 	The Regents of the University of California.  All rights reserved.");
+--- src.orig/coreutils/fmt/fmt.c
++++ src.netbsd/coreutils/fmt/fmt.c
+@@ -192,7 +192,7 @@
+ 	errno = 0;
+ 	ul = strtoul(str, &ep, 0);
+         if (*str != '\0' && *ep == '\0') {
+-		 if ((errno == ERANGE && ul == ULONG_MAX) || ul > SIZE_T_MAX)
++		 if ((errno == ERANGE && ul == ULONG_MAX) || ul > SIZE_MAX)
+ 			errx(1, "%s number `%s' too big", what, str);
+ 		*res = (size_t)ul;
+ 		return 1;
+@@ -202,6 +202,46 @@
+ 	return 0;
+ }
+ 
++#define BUF_PIECE 1024
++
++static wchar_t *get_wln(FILE *f, size_t *len, wchar_t **sbuf, size_t *blen) {
++	wchar_t *wptr;
++	size_t wlen;
++
++	wptr = fgetws(*sbuf, *blen, f);
++	if (wptr) {
++		wlen = wcslen(wptr);
++		if (wptr[wlen - 1] == '\n' || feof(f)) {
++			*len = wlen;
++			return wptr;
++		}
++	} else {
++		return NULL;
++	}
++
++	for (;;) {
++		wchar_t *nptr;
++		*blen = wlen + BUF_PIECE;
++		*sbuf = realloc(*sbuf, *blen * sizeof(wchar_t));
++		if (!*sbuf) err(1, "realloc");
++
++		nptr = fgetws(*sbuf + wlen, BUF_PIECE, f);
++		if (!nptr) {
++			if (feof(f))
++				break;
++			return NULL;
++		}
++
++		wlen += wcslen(nptr);
++		if ((*sbuf)[wlen - 1] == '\n' || feof(f)) {
++			break;
++		}
++	}
++
++	*len = wlen;
++	return *sbuf;
++}
++
+ /*
+  * Read up characters from the passed input file, forming lines,
+  * doing ^H processing, expanding tabs, stripping trailing blanks,
+@@ -215,10 +255,12 @@
+ 	wint_t c;
+ 	int add_space;
+ 	size_t len, col, i;
++        size_t bufl = BUF_PIECE;
++	wchar_t *buf = malloc(bufl * sizeof(wchar_t));
+ 
+ 	if (center) {
+ 		for (;;) {
+-			cp = fgetwln(fi, &len);
++			cp = get_wln(fi, &len, &buf, &bufl);
+ 			if (!cp)
+ 				return;
+ 
+@@ -312,6 +354,8 @@
+ 		if (c != WEOF)
+ 			c = getwc(fi);
+ 	}
++
++        free(buf);
+ 	buf_end(&cbuf);
+ 	buf_end(&lbuf);
+ }
+--- src.orig/coreutils/fmt/head.c
++++ src.netbsd/coreutils/fmt/head.c
+@@ -38,8 +38,9 @@
+ #endif
+ #endif /* not lint */
+ 
+-#include "rcv.h"
+-#include "extern.h"
++#include <string.h>
++#include <stdio.h>
++#include <ctype.h>
+ 
+ /*
+  * Mail -- a mail program
+@@ -47,6 +48,28 @@
+  * Routines for processing and detecting headlines.
+  */
+ 
++#define	MIN(a,b)	((/*CONSTCOND*/(a)<(b))?(a):(b))
++
++struct headline {
++	char	*l_from;	/* The name of the sender */
++	char	*l_tty;		/* His tty string (if any) */
++	char	*l_date;	/* The entire date string */
++};
++
++static inline int
++is_WSP(int c)
++{
++	return c == ' ' || c == '\t';
++}
++
++static inline char *
++skip_WSP(const char *cp)
++{
++	while (is_WSP(*cp))
++		cp++;
++	return __UNCONST(cp);
++}
++
+ /*
+  * Match the given string (cp) against the given template (tp).
+  * Return 1 if they match, 0 if they don't
+@@ -227,15 +250,15 @@
+  * pointers into the copied line in the passed headline
+  * structure.  Actually, it scans.
+  *
+- * XXX - line[], pbuf[], and word[] must be LINESIZE in length or
++ * XXX - line[], pbuf[], and word[] must be BUFSIZ in length or
+  * overflow can occur in nextword() or copyin().
+  */
+-PUBLIC void
++void
+ parse(const char line[], struct headline *hl, char pbuf[])
+ {
+ 	const char *cp;
+ 	char *sp;
+-	char word[LINESIZE];
++	char word[BUFSIZ];
+ 
+ 	hl->l_from = NULL;
+ 	hl->l_tty = NULL;
+@@ -262,12 +285,12 @@
+  * Return true if yes.  Note the extreme pains to
+  * accommodate all funny formats.
+  */
+-PUBLIC int
++int
+ ishead(const char linebuf[])
+ {
+ 	const char *cp;
+ 	struct headline hl;
+-	char parbuf[LINESIZE];
++	char parbuf[BUFSIZ];
+ 
+ 	cp = linebuf;
+ 	if (*cp++ != 'F' || *cp++ != 'r' || *cp++ != 'o' || *cp++ != 'm' ||
+--- src.orig/coreutils/join/join.c
++++ src.netbsd/coreutils/join/join.c
+@@ -301,9 +301,10 @@
+ {
+ 	LINE *lp;
+ 	LINE tmp;
+-	size_t len;
++	size_t bufsize = 0;
++	ssize_t len;
+ 	u_long cnt;
+-	char *bp, *fieldp;
++	char *fieldp, *bp = NULL;
+ 	u_long nsize;
+ 
+ 	/*
+@@ -322,8 +323,10 @@
+ 				nsize = 64;
+ 			else
+ 				nsize = F->setalloc << 1;
+-			if (reallocarr(&F->set, nsize, sizeof(LINE)) != 0)
++			void *new = reallocarray(F->set, nsize, sizeof(LINE));
++			if (new == NULL)
+ 				enomem();
++			F->set = new;
+ 			F->setalloc = nsize;
+ 			memset(F->set + cnt, 0,
+ 			    (F->setalloc - cnt) * sizeof(LINE));
+@@ -344,7 +347,7 @@
+ 			F->pushback = (u_long)-1;
+ 			continue;
+ 		}
+-		if ((bp = fgetln(F->fp, &len)) == NULL)
++		if ((len = getline(&bp, &bufsize, F->fp)) == -1)
+ 			return;
+ 		if (lp->linealloc <= len + 1) {
+ 			char *n;
+@@ -380,9 +383,10 @@
+ 					nsize = 16;
+ 				else
+ 					nsize = lp->fieldalloc << 1;
+-				if (reallocarr(&lp->fields,
+-				    nsize, sizeof(char *)) != 0)
++				void *new = reallocarray(lp->fields, nsize, sizeof(char *));
++				if (new == NULL)
+ 					enomem();
++				lp->fields = new;
+ 				lp->fieldalloc = nsize;
+ 			}
+ 			lp->fields[lp->fieldcnt++] = fieldp;
+@@ -394,6 +398,8 @@
+ 			break;
+ 		}
+ 	}
++
++	free(bp);
+ }
+ 
+ static int
+@@ -510,6 +516,7 @@
+ static void
+ fieldarg(char *option)
+ {
++	void *new = NULL;
+ 	u_long fieldno;
+ 	char *end, *token;
+ 
+@@ -524,9 +531,10 @@
+ 		if (fieldno == 0)
+ 			errx(1, "field numbers are 1 based");
+ 		if (olistcnt == olistalloc) {
+-			if (reallocarr(&olist,
+-			    olistalloc + 50, sizeof(OLIST)) != 0)
++			if ((new = reallocarray(olist,
++			    olistalloc + 50, sizeof(OLIST))) == NULL)
+ 				enomem();
++			olist = new;
+ 			olistalloc += 50;
+ 		}
+ 		olist[olistcnt].fileno = token[0] - '0';
+--- src.orig/coreutils/ls/cmp.c
++++ src.netbsd/coreutils/ls/cmp.c
+@@ -50,18 +50,18 @@
+ #include "ls.h"
+ #include "extern.h"
+ 
+-#if defined(_POSIX_SOURCE) || defined(_POSIX_C_SOURCE) || \
+-    defined(_XOPEN_SOURCE) || defined(__NetBSD__)
++#if (defined(_POSIX_SOURCE) || defined(_POSIX_C_SOURCE) || \
++    defined(_XOPEN_SOURCE) || defined(__NetBSD__)) && !defined(__linux__)
+ #define ATIMENSEC_CMP(x, op, y) ((x)->st_atimensec op (y)->st_atimensec)
+ #define CTIMENSEC_CMP(x, op, y) ((x)->st_ctimensec op (y)->st_ctimensec)
+ #define MTIMENSEC_CMP(x, op, y) ((x)->st_mtimensec op (y)->st_mtimensec)
+ #else
+ #define ATIMENSEC_CMP(x, op, y) \
+-	((x)->st_atimespec.tv_nsec op (y)->st_atimespec.tv_nsec)
++	((x)->st_atim.tv_nsec op (y)->st_atim.tv_nsec)
+ #define CTIMENSEC_CMP(x, op, y) \
+-	((x)->st_ctimespec.tv_nsec op (y)->st_ctimespec.tv_nsec)
++	((x)->st_ctim.tv_nsec op (y)->st_ctim.tv_nsec)
+ #define MTIMENSEC_CMP(x, op, y) \
+-	((x)->st_mtimespec.tv_nsec op (y)->st_mtimespec.tv_nsec)
++	((x)->st_mtim.tv_nsec op (y)->st_mtim.tv_nsec)
+ #endif
+ 
+ int
+--- src.orig/coreutils/ls/ls.1
++++ src.netbsd/coreutils/ls/ls.1
+@@ -40,7 +40,7 @@
+ .Nd list directory contents
+ .Sh SYNOPSIS
+ .Nm
+-.Op Fl 1AaBbCcdFfghikLlMmnOoPpqRrSsTtuWwXx
++.Op Fl 1AaBbCcdFfghikLlMmnOPpqRrSsTtuWwXx
+ .Op Ar
+ .Sh DESCRIPTION
+ For each
+@@ -187,16 +187,6 @@
+ Output only leaf files (not directories), eliding other
+ .Nm
+ output.
+-.It Fl o
+-Include the file flags in a long
+-.Pq Fl l
+-output.
+-If no file flags are set,
+-.Dq -
+-is displayed.
+-(See
+-.Xr chflags 1
+-for a list of possible flags and their meanings.)
+ .It Fl P
+ Print the full pathname for each file.
+ .It Fl p
+@@ -322,10 +312,6 @@
+ .It
+ group name
+ .It
+-file flags (if
+-.Fl o
+-given)
+-.It
+ number of bytes in the file
+ .It
+ abbreviated month file was last modified
+@@ -512,7 +498,6 @@
+ .St -p1003.2
+ specification.
+ .Sh SEE ALSO
+-.Xr chflags 1 ,
+ .Xr chmod 1 ,
+ .Xr stat 2 ,
+ .Xr dirent 3 ,
+--- src.orig/coreutils/ls/ls.c
++++ src.netbsd/coreutils/ls/ls.c
+@@ -46,6 +46,7 @@
+ #endif
+ #endif /* not lint */
+ 
++#include <sys/sysmacros.h>
+ #include <sys/param.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+@@ -88,7 +89,6 @@
+ int f_accesstime;		/* use time of last access */
+ int f_column;			/* columnated format */
+ int f_columnacross;		/* columnated format, sorted across */
+-int f_flags;			/* show flags associated with a file */
+ int f_grouponly;		/* long listing without owner */
+ int f_humanize;			/* humanize the size field */
+ int f_commas;			/* separate size field with comma */
+@@ -259,9 +259,6 @@
+ 		case 'O':
+ 			f_leafonly = 1;
+ 			break;
+-		case 'o':
+-			f_flags = 1;
+-			break;
+ 		case 'P':
+ 			f_fullpath = 1;
+ 			break;
+@@ -592,14 +589,6 @@
+ 					maxuser = ulen;
+ 				if ((glen = strlen(group)) > maxgroup)
+ 					maxgroup = glen;
+-				if (f_flags) {
+-					flags =
+-					    flags_to_string((u_long)sp->st_flags, "-");
+-					if ((flen = strlen(flags)) > maxflags)
+-						maxflags = flen;
+-				} else
+-					flen = 0;
+-
+ 				if ((np = malloc(sizeof(NAMES) +
+ 				    ulen + glen + flen + 2)) == NULL)
+ 					err(EXIT_FAILURE, NULL);
+@@ -609,11 +598,6 @@
+ 				np->group = &np->data[ulen + 1];
+ 				(void)strcpy(np->group, group);
+ 
+-				if (f_flags) {
+-					np->flags = &np->data[ulen + glen + 2];
+-				  	(void)strcpy(np->flags, flags);
+-					free(flags);
+-				}
+ 				cur->fts_pointer = np;
+ 			}
+ 		}
+--- src.orig/coreutils/ls/ls.h
++++ src.netbsd/coreutils/ls/ls.h
+@@ -41,7 +41,6 @@
+ extern long blocksize;		/* block size units */
+ 
+ extern int f_accesstime;	/* use time of last access */
+-extern int f_flags;		/* show flags associated with a file */
+ extern int f_grouponly;		/* long listing without owner */
+ extern int f_humanize;		/* humanize size field */
+ extern int f_commas;        /* separate size field with commas */
+--- src.orig/coreutils/ls/print.c
++++ src.netbsd/coreutils/ls/print.c
+@@ -41,6 +41,7 @@
+ #endif
+ #endif /* not lint */
+ 
++#include <sys/sysmacros.h>
+ #include <sys/param.h>
+ #include <sys/stat.h>
+ #ifndef SMALL
+@@ -169,8 +170,6 @@
+ 		if (!f_grouponly)
+ 			(void)printf("%-*s  ", dp->s_user, np->user);
+ 		(void)printf("%-*s  ", dp->s_group, np->group);
+-		if (f_flags)
+-			(void)printf("%-*s ", dp->s_flags, np->flags);
+ 		if (S_ISCHR(sp->st_mode) || S_ISBLK(sp->st_mode))
+ 			(void)printf("%*lld, %*lld ",
+ 			    dp->s_major, (long long)major(sp->st_rdev),
+@@ -470,9 +469,11 @@
+ 	case S_IFSOCK:
+ 		(void)putchar('=');
+ 		return (1);
++#ifdef S_IFWHT
+ 	case S_IFWHT:
+ 		(void)putchar('%');
+ 		return (1);
++#endif
+ 	}
+ 	if (mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
+ 		(void)putchar('*');
+--- src.orig/coreutils/ls/util.c
++++ src.netbsd/coreutils/ls/util.c
+@@ -69,7 +69,7 @@
+ 		flags |= VIS_CSTYLE;
+ 
+ 	len = strlen(src);
+-	if (len != 0 && SIZE_T_MAX/len <= 4) {
++	if (len != 0 && SIZE_MAX/len <= 4) {
+ 		errx(EXIT_FAILURE, "%s: name too long", src);
+ 		/* NOTREACHED */
+ 	}
+--- src.orig/coreutils/mknod/mknod.c
++++ src.netbsd/coreutils/mknod/mknod.c
+@@ -43,9 +43,6 @@
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ #include <sys/param.h>
+-#if !HAVE_NBTOOL_CONFIG_H
+-#include <sys/sysctl.h>
+-#endif
+ 
+ #include <err.h>
+ #include <errno.h>
+--- src.orig/coreutils/mknod/pack_dev.c
++++ src.netbsd/coreutils/mknod/pack_dev.c
+@@ -38,6 +38,7 @@
+ __RCSID("$NetBSD: pack_dev.c,v 1.12 2013/06/14 16:28:20 tsutsui Exp $");
+ #endif /* not lint */
+ 
++#include <sys/sysmacros.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ 
+--- src.orig/coreutils/mv/mv.c
++++ src.netbsd/coreutils/mv/mv.c
+@@ -50,7 +50,6 @@
+ #include <sys/time.h>
+ #include <sys/wait.h>
+ #include <sys/stat.h>
+-#include <sys/extattr.h>
+ 
+ #include <err.h>
+ #include <errno.h>
+@@ -319,10 +318,10 @@
+ 		(void)close(to_fd);
+ 		return (1);
+ 	}
+-
++#if 0
+ 	if (fcpxattr(from_fd, to_fd) == -1)
+ 		warn("%s: error copying extended attributes", to);
+-
++#endif
+ 	(void)close(from_fd);
+ #ifdef BSD4_4
+ #if defined(__NetBSD__)
+@@ -355,9 +354,10 @@
+ 	}
+ 	if (fchmod(to_fd, sbp->st_mode))
+ 		warn("%s: set mode", to);
++#if 0
+ 	if (fchflags(to_fd, sbp->st_flags) && (errno != EOPNOTSUPP))
+ 		warn("%s: set flags (was: 0%07o)", to, sbp->st_flags);
+-
++#endif
+ 	if (close(to_fd)) {
+ 		warn("%s", to);
+ 		return (1);
+--- src.orig/coreutils/paste/paste.c
++++ src.netbsd/coreutils/paste/paste.c
+@@ -94,9 +94,10 @@
+ static void
+ parallel(int argc, char **argv)
+ {
+-	char ch, *dp, *line;
++	char ch, *dp, *line = NULL;
+ 	FILE **fpp, *fp;
+-	size_t line_len;
++	size_t bufsize = 0;
++	ssize_t line_len;
+ 	int cnt, output;
+ 
+ 	fpp = calloc(argc, sizeof *fpp);
+@@ -118,8 +119,8 @@
+ 			fp = fpp[cnt];
+ 			if (fp == NULL)
+ 				continue;
+-			line = fgetln(fp, &line_len);
+-			if (line == NULL) {
++			line_len = getline(&line, &bufsize, fp);
++			if (line_len == -1) {
+ 				/* Assume EOF */
+ 				if (fp != stdin)
+ 					fclose(fp);
+@@ -154,6 +155,7 @@
+ 		putchar('\n');
+ 	}
+ 
++	free(line);
+ 	free(fpp);
+ }
+ 
+--- src.orig/coreutils/pr/pr.c
++++ src.netbsd/coreutils/pr/pr.c
+@@ -1573,7 +1573,6 @@
+ terminate(int which_sig)
+ {
+ 	flsh_errs();
+-	(void)raise_default_signal(which_sig);
+ 	exit(1);
+ }
+ 
+--- src.orig/coreutils/rm/rm.c
++++ src.netbsd/coreutils/rm/rm.c
+@@ -243,13 +243,13 @@
+ 			if (rval != 0 && fflag && errno == ENOENT)
+ 				continue;
+ 			break;
+-
++#if 0
+ 		case FTS_W:
+ 			rval = undelete(p->fts_accpath);
+ 			if (rval != 0 && fflag && errno == ENOENT)
+ 				continue;
+ 			break;
+-
++#endif
+ 		default:
+ 			if (Pflag) {
+ 				if (rm_overwrite(p->fts_accpath, NULL))
+@@ -288,7 +288,7 @@
+ 		/* Assume if can't stat the file, can't unlink it. */
+ 		if (lstat(f, &sb)) {
+ 			if (Wflag) {
+-				sb.st_mode = S_IFWHT|S_IWUSR|S_IRUSR;
++				sb.st_mode = S_IWUSR|S_IRUSR;
+ 			} else {
+ 				if (!fflag || !NONEXISTENT(errno)) {
+ 					warn("%s", f);
+@@ -307,10 +307,12 @@
+ 			eval = 1;
+ 			continue;
+ 		}
+-		if (!fflag && !S_ISWHT(sb.st_mode) && !check(f, f, &sb))
++		if (!fflag && !check(f, f, &sb))
+ 			continue;
++#if 0
+ 		if (S_ISWHT(sb.st_mode))
+ 			rval = undelete(f);
++#endif
+ 		else if (S_ISDIR(sb.st_mode))
+ 			rval = rmdir(f);
+ 		else {
+--- src.orig/coreutils/sleep/sleep.c
++++ src.netbsd/coreutils/sleep/sleep.c
+@@ -133,8 +133,6 @@
+ 		 * (but only if that is the potential problem)
+ 		 */
+ 		val = strtod(arg, &temp);
+-		if (*temp != '\0')
+-			val = strtod_l(arg, &temp, LC_C_LOCALE);
+ 		if (val < 0 || temp == arg || *temp != '\0')
+ 			usage();
+ 
+--- src.orig/coreutils/stat/stat.c
++++ src.netbsd/coreutils/stat/stat.c
+@@ -30,9 +30,9 @@
+  */
+ 
+ #if HAVE_NBTOOL_CONFIG_H
+-#include "nbtool_config.h"
+-/* config checked libc, we need the prototype as well */
+-#undef HAVE_DEVNAME
++#define HAVE_STRUCT_STAT_ST_BIRTHTIME 1
++#define HAVE_STRUCT_STAT_ST_BIRTHTIMENSEC 1
++#define HAVE_STRUCT_STAT_ST_MTIMENSEC 1
+ #endif
+ 
+ #include <sys/cdefs.h>
+@@ -49,6 +49,7 @@
+ #define HAVE_DEVNAME 1
+ #endif /* HAVE_NBTOOL_CONFIG_H */
+ 
++#include <sys/sysmacros.h>
+ #include <sys/types.h>
+ #include <sys/stat.h>
+ 
+@@ -67,6 +68,7 @@
+ #include <util.h>
+ #endif
+ #include <vis.h>
++#include <fcntl.h>
+ 
+ #if HAVE_STRUCT_STAT_ST_FLAGS
+ #define DEF_F "%#Xf "
+@@ -184,9 +186,9 @@
+ #define SHOW_sizerdev	'Z'
+ 
+ static void	usage(const char *) __dead;
+-static void	output(const struct stat *, const char *,
++static void	output(const struct statx *, const char *,
+ 	    const char *, int, int, int);
+-static int	format1(const struct stat *,	/* stat info */
++static int	format1(const struct statx *,	/* stat info */
+ 	    const char *,		/* the file name */
+ 	    const char *, int,		/* the format string itself */
+ 	    char *, size_t,		/* a place to put the output */
+@@ -205,7 +207,7 @@
+ int
+ main(int argc, char *argv[])
+ {
+-	struct stat st;
++	struct statx st;
+ 	int ch, rc, errs, am_readlink;
+ 	int lsF, fmtchar, usestat, fn, nonl, quiet;
+ 	const char *statfmt, *options, *synopsis;
+@@ -331,19 +333,19 @@
+ 	do {
+ 		if (argc == 0) {
+ 			fn = 0;
+-			rc = fstat(STDIN_FILENO, &st);
++			rc = statx(STDIN_FILENO, "", AT_EMPTY_PATH, STATX_ALL, &st);
+ 		} else if (usestat) {
+ 			/*
+ 			 * Try stat() and if it fails, fall back to
+ 			 * lstat() just in case we're examining a
+ 			 * broken symlink.
+ 			 */
+-			if ((rc = stat(argv[0], &st)) == -1 &&
++			if ((rc = statx(AT_FDCWD, argv[0], 0, STATX_ALL, &st)) == -1 &&
+ 			    errno == ENOENT &&
+-			    (rc = lstat(argv[0], &st)) == -1)
++			    (rc = statx(AT_FDCWD, argv[0], AT_SYMLINK_NOFOLLOW, STATX_ALL, &st)) == -1)
+ 				errno = ENOENT;
+ 		} else
+-			rc = lstat(argv[0], &st);
++			rc = statx(AT_FDCWD, argv[0], AT_SYMLINK_NOFOLLOW, STATX_ALL, &st);
+ 
+ 		if (rc == -1) {
+ 			errs = 1;
+@@ -357,7 +359,7 @@
+ 					    usestat ? "stat" : "lstat");
+ 			}
+ 		} else if (am_readlink && statfmt[1] == 'Y' &&
+-		    (st.st_mode & S_IFMT) != S_IFLNK) {
++		    (st.stx_mode & S_IFMT) != S_IFLNK) {
+ 			linkfail = 1;
+ 			if (!quiet)
+ 				warnx("%s: Not a symbolic link", argv[0]);
+@@ -384,7 +386,7 @@
+  * Parses a format string.
+  */
+ static void
+-output(const struct stat *st, const char *file,
++output(const struct statx *st, const char *file,
+     const char *statfmt, int fn, int nonl, int quiet)
+ {
+ 	int flags, size, prec, ofmt, hilo, what;
+@@ -651,7 +653,7 @@
+  * Arranges output according to a single parsed format substring.
+  */
+ static int
+-format1(const struct stat *st,
++format1(const struct statx *st,
+     const char *file,
+     const char *fmt, int flen,
+     char *buf, size_t blen,
+@@ -688,8 +690,9 @@
+ 	switch (what) {
+ 	case SHOW_st_dev:
+ 	case SHOW_st_rdev:
+-		small = (sizeof(st->st_dev) == 4);
+-		data = (what == SHOW_st_dev) ? st->st_dev : st->st_rdev;
++		small = (sizeof(makedev(st->stx_dev_major, st->stx_dev_minor)) == 4);
++		data = (what == SHOW_st_dev) ? makedev(st->stx_dev_major, st->stx_dev_minor) :
++               makedev(st->stx_rdev_major, st->stx_rdev_minor);
+ #if HAVE_DEVNAME
+ 		sdata = (what == SHOW_st_dev) ?
+ 		    devname(st->st_dev, S_IFBLK) :
+@@ -722,17 +725,17 @@
+ 		}
+ 		break;
+ 	case SHOW_st_ino:
+-		small = (sizeof(st->st_ino) == 4);
+-		data = st->st_ino;
++		small = (sizeof(st->stx_ino) == 4);
++		data = st->stx_ino;
+ 		sdata = NULL;
+ 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
+ 		if (ofmt == 0)
+ 			ofmt = FMTF_UNSIGNED;
+ 		break;
+ 	case SHOW_st_mode:
+-		small = (sizeof(st->st_mode) == 4);
+-		data = st->st_mode;
+-		strmode(st->st_mode, smode);
++		small = (sizeof(st->stx_mode) == 4);
++		data = st->stx_mode;
++		strmode(st->stx_mode, smode);
+ 		stmp = smode;
+ 		l = strlen(stmp);
+ 		if (stmp[l - 1] == ' ')
+@@ -762,20 +765,20 @@
+ 			ofmt = FMTF_OCTAL;
+ 		break;
+ 	case SHOW_st_nlink:
+-		small = (sizeof(st->st_dev) == 4);
+-		data = st->st_nlink;
++		small = (sizeof(makedev(st->stx_dev_major, st->stx_dev_major)) == 4);
++		data = st->stx_nlink;
+ 		sdata = NULL;
+ 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
+ 		if (ofmt == 0)
+ 			ofmt = FMTF_UNSIGNED;
+ 		break;
+ 	case SHOW_st_uid:
+-		small = (sizeof(st->st_uid) == 4);
+-		data = st->st_uid;
+-		if ((pw = getpwuid(st->st_uid)) != NULL)
++		small = (sizeof(st->stx_uid) == 4);
++		data = st->stx_uid;
++		if ((pw = getpwuid(st->stx_uid)) != NULL)
+ 			sdata = pw->pw_name;
+ 		else {
+-			snprintf(sid, sizeof(sid), "(%ld)", (long)st->st_uid);
++			snprintf(sid, sizeof(sid), "(%ld)", (long)st->stx_uid);
+ 			sdata = sid;
+ 		}
+ 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
+@@ -784,12 +787,12 @@
+ 			ofmt = FMTF_UNSIGNED;
+ 		break;
+ 	case SHOW_st_gid:
+-		small = (sizeof(st->st_gid) == 4);
+-		data = st->st_gid;
+-		if ((gr = getgrgid(st->st_gid)) != NULL)
++		small = (sizeof(st->stx_gid) == 4);
++		data = st->stx_gid;
++		if ((gr = getgrgid(st->stx_gid)) != NULL)
+ 			sdata = gr->gr_name;
+ 		else {
+-			snprintf(sid, sizeof(sid), "(%ld)", (long)st->st_gid);
++			snprintf(sid, sizeof(sid), "(%ld)", (long)st->stx_gid);
+ 			sdata = sid;
+ 		}
+ 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX |
+@@ -799,26 +802,26 @@
+ 		break;
+ 	case SHOW_st_atime:
+ 		gottime = 1;
+-		secs = st->st_atime;
++		secs = st->stx_atime.tv_sec;
+ #if HAVE_STRUCT_STAT_ST_MTIMENSEC
+-		nsecs = st->st_atimensec;
++		nsecs = st->stx_atime.tv_nsec;
+ #endif
+ 		/* FALLTHROUGH */
+ 	case SHOW_st_mtime:
+ 		if (!gottime) {
+ 			gottime = 1;
+-			secs = st->st_mtime;
++			secs = st->stx_mtime.tv_sec;
+ #if HAVE_STRUCT_STAT_ST_MTIMENSEC
+-			nsecs = st->st_mtimensec;
++			nsecs = st->stx_mtime.tv_nsec;
+ #endif
+ 		}
+ 		/* FALLTHROUGH */
+ 	case SHOW_st_ctime:
+ 		if (!gottime) {
+ 			gottime = 1;
+-			secs = st->st_ctime;
++			secs = st->stx_ctime.tv_sec;
+ #if HAVE_STRUCT_STAT_ST_MTIMENSEC
+-			nsecs = st->st_ctimensec;
++			nsecs = st->stx_ctime.tv_nsec;
+ #endif
+ 		}
+ #if HAVE_STRUCT_STAT_ST_BIRTHTIME
+@@ -826,9 +829,9 @@
+ 	case SHOW_st_btime:
+ 		if (!gottime) {
+ 			gottime = 1;
+-			secs = st->st_birthtime;
++			secs = st->stx_btime.tv_sec;
+ #if HAVE_STRUCT_STAT_ST_BIRTHTIMENSEC
+-			nsecs = st->st_birthtimensec;
++			nsecs = st->stx_btime.tv_nsec;
+ #endif /* HAVE_STRUCT_STAT_ST_BIRTHTIMENSEC */
+ 		}
+ #endif /* HAVE_STRUCT_STAT_ST_BIRTHTIME */
+@@ -842,8 +845,8 @@
+ 			ofmt = FMTF_DECIMAL;
+ 		break;
+ 	case SHOW_st_size:
+-		small = (sizeof(st->st_size) == 4);
+-		data = st->st_size;
++		small = (sizeof(st->stx_size) == 4);
++		data = st->stx_size;
+ 		sdata = NULL;
+ 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
+ 		if (ofmt == 0)
+@@ -864,16 +867,16 @@
+ 		}
+ 		break;
+ 	case SHOW_st_blocks:
+-		small = (sizeof(st->st_blocks) == 4);
+-		data = st->st_blocks;
++		small = (sizeof(st->stx_blocks) == 4);
++		data = st->stx_blocks;
+ 		sdata = NULL;
+ 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
+ 		if (ofmt == 0)
+ 			ofmt = FMTF_UNSIGNED;
+ 		break;
+ 	case SHOW_st_blksize:
+-		small = (sizeof(st->st_blksize) == 4);
+-		data = st->st_blksize;
++		small = (sizeof(st->stx_blksize) == 4);
++		data = st->stx_blksize;
+ 		sdata = NULL;
+ 		formats = FMTF_DECIMAL | FMTF_OCTAL | FMTF_UNSIGNED | FMTF_HEX;
+ 		if (ofmt == 0)
+@@ -928,7 +931,7 @@
+ 	case SHOW_symlink:
+ 		small = 0;
+ 		data = 0;
+-		if (S_ISLNK(st->st_mode)) {
++		if (S_ISLNK(st->stx_mode)) {
+ 			snprintf(path, sizeof(path), " -> ");
+ 			l = readlink(file, path + 4, sizeof(path) - 4 - 1);
+ 			if (l == -1) {
+@@ -955,11 +958,11 @@
+ 		data = 0;
+ 		sdata = "";
+ 		if (hilo == 0 || hilo == LOW_PIECE) {
+-			switch (st->st_mode & S_IFMT) {
++			switch (st->stx_mode & S_IFMT) {
+ 			case S_IFIFO:	sdata = "|";			break;
+ 			case S_IFDIR:	sdata = "/";			break;
+ 			case S_IFREG:
+-				if (st->st_mode &
++				if (st->stx_mode &
+ 				    (S_IXUSR | S_IXGRP | S_IXOTH))
+ 					sdata = "*";
+ 				break;
+@@ -977,7 +980,7 @@
+ 			hilo = 0;
+ 		}
+ 		else if (hilo == HIGH_PIECE) {
+-			switch (st->st_mode & S_IFMT) {
++			switch (st->stx_mode & S_IFMT) {
+ 			case S_IFIFO:	sdata = "Fifo File";		break;
+ 			case S_IFCHR:	sdata = "Character Device";	break;
+ 			case S_IFDIR:	sdata = "Directory";		break;
+@@ -1044,7 +1047,7 @@
+ 			ofmt = FMTF_STRING;
+ 		break;
+ 	case SHOW_sizerdev:
+-		if (S_ISCHR(st->st_mode) || S_ISBLK(st->st_mode)) {
++		if (S_ISCHR(st->stx_mode) || S_ISBLK(st->stx_mode)) {
+ 			char majdev[20], mindev[20];
+ 			int l1, l2;
+ 
+--- src.orig/coreutils/stty/cchar.c
++++ src.netbsd/coreutils/stty/cchar.c
+@@ -44,6 +44,7 @@
+ #include <limits.h>
+ #include <stddef.h>
+ #include <stdlib.h>
++#include <unistd.h>
+ #include <string.h>
+ 
+ #include "stty.h"
+@@ -58,7 +59,9 @@
+  */
+ const struct cchar cchars1[] = {
+ 	{ "discard",	VDISCARD, 	CDISCARD },
++#if 0
+ 	{ "dsusp", 	VDSUSP,		CDSUSP },
++#endif
+ 	{ "eof",	VEOF,		CEOF },
+ 	{ "eol",	VEOL,		CEOL },
+ 	{ "eol2",	VEOL2,		CEOL },
+@@ -70,7 +73,9 @@
+ 	{ "quit",	VQUIT,		CQUIT },
+ 	{ "reprint",	VREPRINT, 	CREPRINT },
+ 	{ "start",	VSTART,		CSTART },
++#if 0
+ 	{ "status",	VSTATUS, 	CSTATUS },
++#endif
+ 	{ "stop",	VSTOP,		CSTOP },
+ 	{ "susp",	VSUSP,		CSUSP },
+ 	{ "time",	VTIME,		CTIME },
+--- src.orig/coreutils/stty/key.c
++++ src.netbsd/coreutils/stty/key.c
+@@ -209,7 +209,7 @@
+ {
+ 	int f, r;
+ 	
+-	r = f = open(_PATH_URANDOM, O_RDONLY, 0);
++	r = f = open("/dev/urandom", O_RDONLY, 0);
+ 	if (f >= 0) {
+ 		r = read(f, &(ip->t), sizeof(struct termios));
+ 		close(f);
+@@ -282,11 +282,11 @@
+ void
+ f_sane(struct info *ip)
+ {
+-	ip->t.c_cflag = TTYDEF_CFLAG | (ip->t.c_cflag & (CLOCAL|CRTSCTS|CDTRCTS));
++	ip->t.c_cflag = TTYDEF_CFLAG | (ip->t.c_cflag & (CLOCAL|CRTSCTS));
+ 	ip->t.c_iflag = TTYDEF_IFLAG;
+ 	ip->t.c_iflag |= ICRNL;
+ 	/* preserve user-preference flags in lflag */
+-#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|ALTWERASE|TOSTOP|NOFLSH)
++#define	LKEEP	(ECHOKE|ECHOE|ECHOK|ECHOPRT|ECHOCTL|VWERASE|TOSTOP|NOFLSH)
+ 	ip->t.c_lflag = TTYDEF_LFLAG | (ip->t.c_lflag & LKEEP);
+ 	ip->t.c_oflag = TTYDEF_OFLAG;
+ 	ip->set = 1;
+@@ -320,13 +320,17 @@
+ void
+ f_ostart(struct info *ip)
+ {
++#if 0
+ 	if (ioctl (0, TIOCSTART) < 0)
+ 		err(1, "TIOCSTART");
++#endif
+ }
+ 
+ void
+ f_ostop(struct info *ip)
+ {
++#if 0
+ 	if (ioctl (0, TIOCSTOP) < 0)
+ 		err(1, "TIOCSTOP");
++#endif
+ }
+--- src.orig/coreutils/stty/modes.c
++++ src.netbsd/coreutils/stty/modes.c
+@@ -71,8 +71,10 @@
+ 	{ "hup",	HUPCL },
+ 	{ "clocal",	CLOCAL },
+ 	{ "crtscts",	CRTSCTS },
++#if 0
+ 	{ "mdmbuf",	MDMBUF },
+ 	{ "cdtrcts",	CDTRCTS },
++#endif
+ 	{ .name = NULL },
+ };
+ 
+@@ -125,7 +127,7 @@
+ 	{ "echok",	ECHOK },
+ 	{ "echoke",	ECHOKE },
+ 	{ "crtkill",	ECHOKE },
+-	{ "altwerase",	ALTWERASE },
++	{ "altwerase",	VWERASE },
+ 	{ "iexten",	IEXTEN },
+ 	{ "echonl",	ECHONL },
+ 	{ "echoctl",	ECHOCTL },
+@@ -138,7 +140,9 @@
+ 	{ "tostop",	TOSTOP },
+ 	{ "flusho",	FLUSHO },
+ 	{ "pendin",	PENDIN },
++#if 0
+ 	{ "nokerninfo",	NOKERNINFO },
++#endif
+ 	{ .name = NULL },
+ };
+ 
+@@ -147,8 +151,10 @@
+ 	{ "-crt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
+ 	{ "newcrt",	ECHOE|ECHOKE|ECHOCTL, ECHOK|ECHOPRT },
+ 	{ "-newcrt",	ECHOK, ECHOE|ECHOKE|ECHOCTL },
++#if 0
+ 	{ "kerninfo",	0, NOKERNINFO },
+ 	{ "-kerninfo",	NOKERNINFO, 0 },
++#endif
+ 	{ .name = NULL },
+ };
+ 
+@@ -156,7 +162,9 @@
+ 	{ "opost",	OPOST },
+ 	{ "onlcr",	ONLCR },
+ 	{ "ocrnl",	OCRNL },
++#if 0
+ 	{ "oxtabs",	OXTABS },
++#endif
+ 	{ "onocr",	ONOCR },
+ 	{ "onlret",	ONLRET },
+ 	{ .name = NULL },
+@@ -165,8 +173,10 @@
+ const struct specialmodes ospecialmodes[] = {
+ 	{ "litout",	0, OPOST },
+ 	{ "-litout",	OPOST, 0 },
++#if 0
+ 	{ "tabs",	0, OXTABS },		/* "preserve" tabs */
+ 	{ "-tabs",	OXTABS, 0 },
++#endif
+ 	{ .name = NULL },
+ };
+ 
+--- src.orig/coreutils/stty/print.c
++++ src.netbsd/coreutils/stty/print.c
+@@ -43,6 +43,7 @@
+ #include <stddef.h>
+ #include <stdio.h>
+ #include <string.h>
++#include <unistd.h>
+ 
+ #include "stty.h"
+ #include "extern.h"
+@@ -100,12 +101,14 @@
+ 	put("-echonl", ECHONL, 0);
+ 	put("-echoctl", ECHOCTL, 0);
+ 	put("-echoprt", ECHOPRT, 0);
+-	put("-altwerase", ALTWERASE, 0);
++	put("-altwerase", VWERASE, 0);
+ 	put("-noflsh", NOFLSH, 0);
+ 	put("-tostop", TOSTOP, 0);
+ 	put("-flusho", FLUSHO, 0);
+ 	put("-pendin", PENDIN, 0);
++#if 0
+ 	put("-nokerninfo", NOKERNINFO, 0);
++#endif
+ 	put("-extproc", EXTPROC, 0);
+ 
+ 	/* input flags */
+@@ -131,7 +134,9 @@
+ 	put("-opost", OPOST, 1);
+ 	put("-onlcr", ONLCR, 1);
+ 	put("-ocrnl", OCRNL, 0);
++#if 0
+ 	put("-oxtabs", OXTABS, 1);
++#endif
+ 	put("-onocr", ONOCR, 0);
+ 	put("-onlret", ONLRET, 0);
+ 
+@@ -159,8 +164,10 @@
+ 	put("-clocal", CLOCAL, 0);
+ 	put("-cstopb", CSTOPB, 0);
+ 	put("-crtscts", CRTSCTS, 0);
++#if 0
+ 	put("-mdmbuf", MDMBUF, 0);
+ 	put("-cdtrcts", CDTRCTS, 0);
++#endif
+ 
+ 	/* special control characters */
+ 	cc = tp->c_cc;
+--- src.orig/coreutils/stty/stty.c
++++ src.netbsd/coreutils/stty/stty.c
+@@ -58,6 +58,9 @@
+ #include "stty.h"
+ #include "extern.h"
+ 
++int GET_TIOCGLINED(int, linedn_t);
++int GET_TIOCGQSIZE(int, int *);
++
+ int
+ main(int argc, char *argv[])
+ {
+@@ -99,11 +102,11 @@
+ 
+ 	if (tcgetattr(i.fd, &i.t) < 0)
+ 		err(1, "tcgetattr");
+-	if (ioctl(i.fd, TIOCGLINED, i.ldisc) < 0)
++	if (GET_TIOCGLINED(i.fd, i.ldisc) < 0)
+ 		warn("TIOCGLINED");
+ 	if (ioctl(i.fd, TIOCGWINSZ, &i.win) < 0)
+ 		warn("TIOCGWINSZ");
+-	if (ioctl(i.fd, TIOCGQSIZE, &i.queue) < 0)
++	if (GET_TIOCGQSIZE(i.fd, &i.queue) < 0)
+ 		warn("TIOCGQSIZE");
+ 
+ 	switch(fmt) {
+@@ -158,6 +161,23 @@
+ 	/* NOTREACHED */
+ }
+ 
++int
++GET_TIOCGLINED(int fd, linedn_t ldisc)
++{
++	unsigned int n;
++	if (ioctl(fd, TIOCGETD, &n) < 0 || n != 0)
++		return -1;
++	strlcpy(ldisc, "termios", 32);
++	return 0;
++}
++
++int
++GET_TIOCGQSIZE(int fd, int *queue)
++{
++	*queue = 4096;
++	return 0;
++}
++
+ void
+ usage(void)
+ {
+--- src.orig/coreutils/stty/stty.h
++++ src.netbsd/coreutils/stty/stty.h
+@@ -37,6 +37,8 @@
+ #include <sys/ioctl.h>
+ #include <termios.h>
+ 
++typedef char linedn_t[32];
++
+ struct info {
+ 	int fd;					/* file descriptor */
+ 	linedn_t ldisc;				/* line discipline */
+--- src.orig/coreutils/tail/forward.c
++++ src.netbsd/coreutils/tail/forward.c
+@@ -44,7 +44,6 @@
+ #include <sys/stat.h>
+ #include <sys/time.h>
+ #include <sys/mman.h>
+-#include <sys/event.h>
+ 
+ #include <limits.h>
+ #include <fcntl.h>
+@@ -88,9 +87,8 @@
+ forward(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
+ {
+ 	int ch, n;
+-	int kq=-1, action=USE_SLEEP;
++	int action=USE_SLEEP;
+ 	struct stat statbuf;
+-	struct kevent ev[2];
+ 
+ 	switch(style) {
+ 	case FBYTES:
+@@ -171,13 +169,6 @@
+ 		break;
+ 	}
+ 
+-	if (fflag) {
+-		kq = kqueue();
+-		if (kq < 0)
+-			xerr(1, "kqueue");
+-		action = ADD_EVENTS;
+-	}
+-
+ 	for (;;) {
+ 		while ((ch = getc(fp)) != EOF)  {
+ 			if (putchar(ch) == EOF)
+@@ -194,6 +185,7 @@
+ 		clearerr(fp);
+ 
+ 		switch (action) {
++#if 0
+ 		case ADD_EVENTS:
+ 			n = 0;
+ 
+@@ -232,7 +224,7 @@
+ 				}
+ 			}
+ 			break;
+-
++#endif
+ 		case USE_SLEEP:
+ 			/*
+ 			 * We pause for one second after displaying any data
+@@ -252,17 +244,12 @@
+ 						goto out;
+ 					}
+ 					*sbp = statbuf;
+-					if (kq != -1)
+-						action = ADD_EVENTS;
+-				} else if (kq != -1)
+-					action = USE_KQUEUE;
++				}
+ 			}
+ 			break;
+ 		}
+ 	}
+ out:
+-	if (fflag && kq != -1)
+-		close(kq);
+ }
+ 
+ /*
+--- src.orig/coreutils/tail/reverse.c
++++ src.netbsd/coreutils/tail/reverse.c
+@@ -113,7 +113,7 @@
+ 	if (!(size = sbp->st_size))
+ 		return;
+ 
+-	if ((uint64_t)size > SIZE_T_MAX) {
++	if ((uint64_t)size > SIZE_MAX) {
+ 			/* XXX: need a cleaner way to check this on amd64 */
+ 		errno = EFBIG;
+ 		xerr(0, "%s", fname);
+--- src.orig/coreutils/test/test.c
++++ src.netbsd/coreutils/test/test.c
+@@ -28,6 +28,7 @@
+ #include <string.h>
+ #include <unistd.h>
+ #include <stdarg.h>
++#include <time.h>
+ 
+ /* test(1) accepts the following grammar:
+ 	oexpr	::= aexpr | aexpr "-o" oexpr ;
+--- src.orig/coreutils/timeout/timeout.c
++++ src.netbsd/coreutils/timeout/timeout.c
+@@ -107,6 +107,8 @@
+ 	return (ret);
+ }
+ 
++extern const int sys_nsig;
++
+ static int
+ parse_signal(const char *str)
+ {
+@@ -118,7 +120,7 @@
+ 		str += 3;
+ 
+ 		for (i = 1; i < sys_nsig; i++) {
+-			if (strcasecmp(str, sys_signame[i]) == 0)
++			if (strcasecmp(str, signum_to_signame(i)) == 0)
+ 				return (i);
+ 		}
+ 
+--- src.orig/coreutils/touch/touch.c
++++ src.netbsd/coreutils/touch/touch.c
+@@ -93,7 +93,7 @@
+ 	struct timespec ts[2];
+ 	int aflag, cflag, Dflag, hflag, mflag, ch, fd, len, rval, timeset;
+ 	char *p;
+-	int (*change_file_times)(const char *, const struct timespec *);
++        int utimensat_flag = 0;
+ 	int (*get_file_status)(const char *, struct stat *);
+ 
+ 	setlocale(LC_ALL, "");
+@@ -152,10 +152,9 @@
+ 
+ 	if (hflag) {
+ 		cflag = 1;		/* Don't create new file */
+-		change_file_times = lutimens;
++		utimensat_flag = AT_SYMLINK_NOFOLLOW;
+ 		get_file_status = lstat;
+ 	} else {
+-		change_file_times = utimens;
+ 		get_file_status = stat;
+ 	}
+ 
+@@ -199,17 +198,17 @@
+ 				continue;
+ 		}
+ 		if (!aflag)
+-			ts[0] = sb.st_atimespec;
++			ts[0] = sb.st_atim;
+ 		if (!mflag)
+-			ts[1] = sb.st_mtimespec;
++			ts[1] = sb.st_mtim;
+ 
+ 		if (Dflag &&
+-		    timespeccmp(&ts[0], &sb.st_atimespec, ==) &&
+-		    timespeccmp(&ts[1], &sb.st_mtimespec, ==))
++		    timespeccmp(&ts[0], &sb.st_atim, ==) &&
++		    timespeccmp(&ts[1], &sb.st_mtim, ==))
+ 			continue;
+ 
+ 		/* Try utimes(2). */
+-		if (!(*change_file_times)(*argv, ts))
++		if (!utimensat(AT_FDCWD, *argv, ts, utimensat_flag))
+ 			continue;
+ 
+ 		/* If the user specified a time, nothing else we can do. */
+@@ -224,7 +223,7 @@
+ 		 * The permission checks are different, too, in that the
+ 		 * ability to write the file is sufficient.  Take a shot.
+ 		 */
+-		 if (!(*change_file_times)(*argv, NULL))
++		 if (!utimensat(AT_FDCWD, *argv, NULL, utimensat_flag))
+ 			continue;
+ 
+ 		rval = EXIT_FAILURE;
+@@ -355,8 +354,8 @@
+ 
+ 	if (statfunc(fname, &sb))
+ 		err(1, "%s", fname);
+-	tsp[0] = sb.st_atimespec;
+-	tsp[1] = sb.st_mtimespec;
++	tsp[0] = sb.st_atim;
++	tsp[1] = sb.st_mtim;
+ }
+ 
+ static int
+--- src.orig/coreutils/uname/uname.c
++++ src.netbsd/coreutils/uname/uname.c
+@@ -42,9 +42,9 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
++#include <string.h>
+ #include <err.h>
+ 
+-#include <sys/sysctl.h>
+ #include <sys/utsname.h>
+ 
+ __dead static void usage(void);
+@@ -113,12 +113,16 @@
+ 		/* NOTREACHED */
+ 	}
+ 	if (print_mask & PRINT_MACHINE_ARCH) {
++#if 0
+ 		int mib[2] = { CTL_HW, HW_MACHINE_ARCH };
+ 		size_t len = sizeof (machine_arch);
+ 
+ 		if (sysctl(mib, sizeof (mib) / sizeof (mib[0]), machine_arch,
+ 		    &len, NULL, 0) < 0)
+ 			err(EXIT_FAILURE, "sysctl");
++#else
++		strlcpy(machine_arch, "unknown", sizeof(machine_arch));
++#endif
+ 	}
+ 
+ 	if (print_mask & PRINT_SYSNAME) {
+--- src.orig/coreutils/unexpand/unexpand.c
++++ src.netbsd/coreutils/unexpand/unexpand.c
+@@ -77,9 +77,10 @@
+ {
+ 	int c;
+ 	char *ep, *tab;
+-	char *line;
+-	size_t len;
++	ssize_t len;
+ 	unsigned long i;
++	char *linebuf = NULL;
++	size_t bufsize = 0;
+ 
+ 	setprogname(argv[0]);
+ 
+@@ -123,9 +124,12 @@
+ 				err(EXIT_FAILURE, "Cannot open `%s'", argv[0]);
+ 			argc--, argv++;
+ 		}
+-		while ((line = fgetln(stdin, &len)) != NULL)
+-			tabify(line, len);
++		while ((len = getline(&linebuf, &bufsize, stdin)) != -1)
++			tabify(linebuf, len);
++
+ 	} while (argc > 0);
++
++	free(linebuf);
+ 	return EXIT_SUCCESS;
+ }
+ 
+--- src.orig/coreutils/uniq/uniq.c
++++ src.netbsd/coreutils/uniq/uniq.c
+@@ -68,9 +68,10 @@
+ 	const char *prevp, *thisp;
+ 	FILE *ifp, *ofp;
+ 	int ch;
+-	char *prevline, *thisline, *p;
+-	size_t prevlinesize, thislinesize, psize;
++	char *prevline, *thisline, *p = NULL;
++	size_t prevlinesize, thislinesize, bufsize = 0;
+ 	size_t prevlen, thislen;
++	ssize_t psize;
+ 
+ 	setprogname(argv[0]);
+ 	ifp = ofp = NULL;
+@@ -122,7 +123,7 @@
+ 		usage();
+ 	}
+ 
+-	if ((p = fgetln(ifp, &psize)) == NULL)
++	if ((psize = getline(&p, &bufsize, ifp)) == -1)
+ 		return 0;
+ 	prevlinesize = prevlen = psize;
+ 	if ((prevline = malloc(prevlinesize + 1)) == NULL)
+@@ -139,7 +140,7 @@
+ 	if ((thisline = malloc(thislinesize + 1)) == NULL)
+ 		err(1, "malloc");
+ 
+-	while ((p = fgetln(ifp, &psize)) != NULL) {
++	while ((psize = getline(&p, &bufsize, ifp)) != -1) {
+ 		if (psize > thislinesize) {
+ 			if ((thisline = realloc(thisline, psize + 1)) == NULL)
+ 				err(1, "realloc");
+@@ -175,6 +176,7 @@
+ 			++repeats;
+ 	}
+ 	show(ofp, prevline);
++	free(p);
+ 	free(prevline);
+ 	free(thisline);
+ 	return 0;
 --- src.orig/coreutils/who/utmpentry.c
 +++ src.netbsd/coreutils/who/utmpentry.c
 @@ -50,6 +50,9 @@
@@ -330,9 +2582,172 @@
  # define WHO_NAME_LEN		UT_NAMESIZE
  # define WHO_LINE_LEN		UT_LINESIZE
  # define WHO_HOST_LEN		UT_HOSTSIZE
+--- src.orig/coreutils/xinstall/getid.c
++++ src.netbsd/coreutils/xinstall/getid.c
+@@ -60,7 +60,7 @@
+  * POSSIBILITY OF SUCH DAMAGE.
+  */
+ 
+-#if HAVE_NBTOOL_CONFIG_H
++#if 0
+ #include "nbtool_config.h"
+ #endif
+ 
+@@ -77,8 +77,7 @@
+ #include <string.h>
+ #include <time.h>
+ #include <unistd.h>
+-
+-#include "extern.h"
++#include <err.h>
+ 
+ static	struct group *	gi_getgrnam(const char *);
+ static	struct group *	gi_getgrgid(gid_t);
+--- src.orig/coreutils/xinstall/mtree.h
++++ src.netbsd/coreutils/xinstall/mtree.h
+@@ -146,7 +146,7 @@
+ #define	RP(p)	\
+ 	((p)->fts_path[0] == '.' && (p)->fts_path[1] == '/' ? \
+ 	    (p)->fts_path + 2 : (p)->fts_path)
+-
++#if 0
+ #define	UF_MASK ((UF_NODUMP | UF_IMMUTABLE |   \
+                   UF_APPEND | UF_OPAQUE)       \
+                     & UF_SETTABLE)              /* user settable flags */
+@@ -154,5 +154,5 @@
+                   SF_APPEND) & SF_SETTABLE)     /* root settable flags */
+ #define	CH_MASK  (UF_MASK | SF_MASK)            /* all settable flags */
+ #define	SP_FLGS  (SF_IMMUTABLE | SF_APPEND)     /* special flags */
+-
++#endif
+ #endif /* _MTREE_H_ */
+--- src.orig/coreutils/xinstall/xinstall.c
++++ src.netbsd/coreutils/xinstall/xinstall.c
+@@ -61,7 +61,7 @@
+ #define __MKTEMP_OK__	/* All uses of mktemp have been checked */
+ 
+ #if HAVE_NBTOOL_CONFIG_H
+-#include "nbtool_config.h"
++#define HAVE_POSIX_SPAWN 1
+ #else
+ #define HAVE_FUTIMES 1
+ #define HAVE_POSIX_SPAWN 1
+@@ -108,7 +108,6 @@
+ #endif
+ 
+ #include <md5.h>
+-#include <rmd160.h>
+ #include <sha1.h>
+ #include <sha2.h>
+ 
+@@ -137,7 +136,6 @@
+ static enum {
+ 	DIGEST_NONE = 0,
+ 	DIGEST_MD5,
+-	DIGEST_RMD160,
+ 	DIGEST_SHA1,
+ 	DIGEST_SHA256,
+ 	DIGEST_SHA384,
+@@ -338,8 +336,6 @@
+ 			digesttype = DIGEST_NONE;
+ 		} else if (strcmp(digest, "md5") == 0) {
+ 			digesttype = DIGEST_MD5;
+-		} else if (strcmp(digest, "rmd160") == 0) {
+-			digesttype = DIGEST_RMD160;
+ 		} else if (strcmp(digest, "sha1") == 0) {
+ 			digesttype = DIGEST_SHA1;
+ 		} else if (strcmp(digest, "sha256") == 0) {
+@@ -574,9 +570,6 @@
+ 				case DIGEST_MD5:
+ 					dres = MD5File(from_name, NULL);
+ 					break;
+-				case DIGEST_RMD160:
+-					dres = RMD160File(from_name, NULL);
+-					break;
+ 				case DIGEST_SHA1:
+ 					dres = SHA1File(from_name, NULL);
+ 					break;
+@@ -872,7 +865,6 @@
+ 	u_char	*p;
+ 	u_char	buf[MAXBSIZE];
+ 	MD5_CTX		ctxMD5;
+-	RMD160_CTX	ctxRMD160;
+ 	SHA1_CTX	ctxSHA1;
+ 	SHA256_CTX	ctxSHA256;
+ 	SHA384_CTX	ctxSHA384;
+@@ -882,9 +874,6 @@
+ 	case DIGEST_MD5:
+ 		MD5Init(&ctxMD5);
+ 		break;
+-	case DIGEST_RMD160:
+-		RMD160Init(&ctxRMD160);
+-		break;
+ 	case DIGEST_SHA1:
+ 		SHA1Init(&ctxSHA1);
+ 		break;
+@@ -938,9 +927,6 @@
+ 			case DIGEST_MD5:
+ 				MD5Update(&ctxMD5, p, size);
+ 				break;
+-			case DIGEST_RMD160:
+-				RMD160Update(&ctxRMD160, p, size);
+-				break;
+ 			case DIGEST_SHA1:
+ 				SHA1Update(&ctxSHA1, p, size);
+ 				break;
+@@ -972,9 +958,6 @@
+ 				case DIGEST_MD5:
+ 					MD5Update(&ctxMD5, buf, nr);
+ 					break;
+-				case DIGEST_RMD160:
+-					RMD160Update(&ctxRMD160, buf, nr);
+-					break;
+ 				case DIGEST_SHA1:
+ 					SHA1Update(&ctxSHA1, buf, nr);
+ 					break;
+@@ -1002,8 +985,6 @@
+ 	switch (digesttype) {
+ 	case DIGEST_MD5:
+ 		return MD5End(&ctxMD5, NULL);
+-	case DIGEST_RMD160:
+-		return RMD160End(&ctxRMD160, NULL);
+ 	case DIGEST_SHA1:
+ 		return SHA1End(&ctxSHA1, NULL);
+ 	case DIGEST_SHA256:
 --- src.orig/dbcompat/btree/bt_open.c
 +++ src.netbsd/dbcompat/btree/bt_open.c
-@@ -326,7 +326,7 @@
+@@ -48,6 +48,7 @@
+  */
+ 
+ #include "namespace.h"
++#include <sys/param.h>
+ #include <sys/stat.h>
+ 
+ #include <assert.h>
+@@ -71,6 +72,7 @@
+ 
+ static int byteorder(void);
+ static int nroot(BTREE *);
++static int tmp(void);
+ 
+ /*
+  * __BT_OPEN -- Open a btree.
+@@ -201,12 +203,12 @@
+ 		default:
+ 			goto einval;
+ 		}
+-		if ((t->bt_fd = __dbopen(fname, flags, mode, &sb)) == -1)
++		if ((t->bt_fd = open(fname, flags | O_CLOEXEC, mode)) == -1)
+ 			goto err;
+ 	} else {
+ 		if ((flags & O_ACCMODE) != O_RDWR)
+ 			goto einval;
+-		if ((t->bt_fd = __dbtemp("bt.", &sb)) == -1)
++		if ((t->bt_fd = tmp()) == -1)
+ 			goto err;
+ 		F_SET(t, B_INMEM);
+ 	}
+@@ -326,7 +328,7 @@
  einval:	errno = EINVAL;
  	goto err;
  
@@ -341,6 +2756,36 @@
  	goto err;
  
  err:	if (t) {
+@@ -389,6 +391,29 @@
+ }
+ 
+ static int
++tmp(void)
++{
++	sigset_t set, oset;
++	int fd, len;
++	char *envtmp;
++	char path[MAXPATHLEN];
++
++	envtmp = secure_getenv("TMPDIR");
++	len = snprintf(path,
++	    sizeof(path), "%s/bt.XXXXXXXXXX", envtmp ? envtmp : "/tmp");
++	if (len < 0 || len >= (int)sizeof(path)) {
++		errno = ENAMETOOLONG;
++		return(-1);
++	}
++
++	(void)sigfillset(&set);
++	(void)sigprocmask(SIG_BLOCK, &set, &oset);
++	if ((fd = mkostemp(path, O_CLOEXEC)) != -1)
++		(void)unlink(path);
++	(void)sigprocmask(SIG_SETMASK, &oset, NULL);
++	return(fd);
++}
++static int
+ byteorder(void)
+ {
+ 	uint32_t x;
 --- src.orig/dbcompat/btree/btree.h
 +++ src.netbsd/dbcompat/btree/btree.h
 @@ -43,6 +43,7 @@
@@ -364,6 +2809,19 @@
  
  	if ((flags & ~(USE_OPEN_FLAGS | DB_FLAGS)) == 0)
  		switch (type) {
+@@ -71,8 +71,12 @@
+ 			return (__bt_open(fname, flags & USE_OPEN_FLAGS,
+ 			    mode, openinfo, (int)(flags & DB_FLAGS)));
+ 		case DB_HASH:
++#if 0
+ 			return (__hash_open(fname, flags & USE_OPEN_FLAGS,
+ 			    mode, openinfo, (int)(flags & DB_FLAGS)));
++#else
++				break;
++#endif
+ 		case DB_RECNO:
+ 			return (__rec_open(fname, flags & USE_OPEN_FLAGS,
+ 			    mode, openinfo, (int)(flags & DB_FLAGS)));
 --- src.orig/dbcompat/mpool.c
 +++ src.netbsd/dbcompat/mpool.c
 @@ -253,7 +253,7 @@
@@ -375,6 +2833,17 @@
  			return NULL;
  		} else if (nr == 0) {
  			/*
+--- src.orig/dbcompat/recno/rec_open.c
++++ src.netbsd/dbcompat/recno/rec_open.c
+@@ -70,7 +70,7 @@
+ 	dbp = NULL;
+ 	/* Open the user's file -- if this fails, we're done. */
+ 	if (fname != NULL) {
+-		if ((rfd = __dbopen(fname, flags, mode, NULL)) == -1)
++		if ((rfd = open(fname, flags | O_CLOEXEC, mode)) == -1)
+ 			return NULL;
+ 	}
+ 
 --- src.orig/dbinclude/db.h
 +++ src.netbsd/dbinclude/db.h
 @@ -34,7 +34,7 @@
@@ -784,6 +3253,14 @@
  			if (p[len - 1] == L'\n')
  				--len;
  			t = p + len - 1;
+@@ -104,6 +148,7 @@
+ 		}
+ 		(void)fclose(fp);
+ 	} while(*argv);
++	free(buf);
+ 	exit(rval);
+ }
+ 
 --- src.orig/miscutils/script/script.c
 +++ src.netbsd/miscutils/script/script.c
 @@ -57,12 +57,21 @@
@@ -972,33 +3449,6 @@
  	}
  
  	/* For each path, for each program... */
---- src.orig/miscutils/write/write.c
-+++ src.netbsd/miscutils/write/write.c
-@@ -95,8 +95,10 @@
- 	case 3:
- 		if (!strncmp(argv[2], _PATH_DEV, strlen(_PATH_DEV)))
- 			argv[2] += strlen(_PATH_DEV);
--		if (uid_from_user(argv[1], &uid) == -1)
-+		struct passwd *pw = getpwnam(argv[1]);
-+		if (pw == NULL)
- 			errx(1, "%s: unknown user", argv[1]);
-+		uid = pw->pw_uid;
- 		if (utmp_chk(argv[1], argv[2]))
- 			errx(1, "%s is not logged in on %s",
- 			    argv[1], argv[2]);
-@@ -159,9 +161,10 @@
- 	int fd, nfd;
- 	uid_t uid;
- 
--	if (uid_from_user(user, &uid) == -1)
-+	struct passwd *pw = getpwnam(user);
-+	if (pw == NULL)
- 		errx(1, "%s: unknown user", user);
--
-+	uid = pw->pw_uid;
- 	(void)getutentries(NULL, &ep);
- 
- 	nloggedttys = nttys = 0;
 --- src.orig/patch/backupfile.c
 +++ src.netbsd/patch/backupfile.c
 @@ -114,7 +114,7 @@

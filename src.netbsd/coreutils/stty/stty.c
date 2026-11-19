@@ -58,6 +58,9 @@ __RCSID("$NetBSD: stty.c,v 1.24 2019/09/06 16:28:53 christos Exp $");
 #include "stty.h"
 #include "extern.h"
 
+int GET_TIOCGLINED(int, linedn_t);
+int GET_TIOCGQSIZE(int, int *);
+
 int
 main(int argc, char *argv[])
 {
@@ -99,11 +102,11 @@ args:	argc -= optind;
 
 	if (tcgetattr(i.fd, &i.t) < 0)
 		err(1, "tcgetattr");
-	if (ioctl(i.fd, TIOCGLINED, i.ldisc) < 0)
+	if (GET_TIOCGLINED(i.fd, i.ldisc) < 0)
 		warn("TIOCGLINED");
 	if (ioctl(i.fd, TIOCGWINSZ, &i.win) < 0)
 		warn("TIOCGWINSZ");
-	if (ioctl(i.fd, TIOCGQSIZE, &i.queue) < 0)
+	if (GET_TIOCGQSIZE(i.fd, &i.queue) < 0)
 		warn("TIOCGQSIZE");
 
 	switch(fmt) {
@@ -156,6 +159,23 @@ args:	argc -= optind;
 		warn("TIOCSWINSZ");
 	exit(0);
 	/* NOTREACHED */
+}
+
+int
+GET_TIOCGLINED(int fd, linedn_t ldisc)
+{
+	unsigned int n;
+	if (ioctl(fd, TIOCGETD, &n) < 0 || n != 0)
+		return -1;
+	strlcpy(ldisc, "termios", 32);
+	return 0;
+}
+
+int
+GET_TIOCGQSIZE(int fd, int *queue)
+{
+	*queue = 4096;
+	return 0;
 }
 
 void

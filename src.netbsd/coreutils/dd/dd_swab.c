@@ -65,7 +65,7 @@ dd_swab(const void * from, void * to, ssize_t len)
 	tp = (char *)to;
 #define	STEP	temp = *fp++,*tp++ = *fp++,*tp++ = temp
 
-	if (__predict_false(len == 1)) {
+	if (len == 1) {
 		STEP;
 		return;
 	}

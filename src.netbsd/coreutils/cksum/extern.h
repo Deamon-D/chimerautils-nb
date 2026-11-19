@@ -36,6 +36,7 @@
 #endif
 
 #include <sys/cdefs.h>
+#include <stdint.h>
 #include "crc_extern.h"
 
 __BEGIN_DECLS

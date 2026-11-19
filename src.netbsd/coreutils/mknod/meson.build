@@ -1,6 +1,8 @@
 mknod_prog = executable(
     'mknod',
-    [ 'mknod.c' ],
+    [ 'mknod.c', 'pack_dev.c' ],
+    include_directories: [inc],
+    link_with : [libcompat],
     install : true,
     install_dir : sbindir,
 )

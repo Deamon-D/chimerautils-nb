@@ -41,6 +41,7 @@ __RCSID("$NetBSD: print.c,v 1.59 2024/12/11 12:56:31 simonb Exp $");
 #endif
 #endif /* not lint */
 
+#include <sys/sysmacros.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #ifndef SMALL
@@ -169,8 +170,6 @@ printlong(DISPLAY *dp)
 		if (!f_grouponly)
 			(void)printf("%-*s  ", dp->s_user, np->user);
 		(void)printf("%-*s  ", dp->s_group, np->group);
-		if (f_flags)
-			(void)printf("%-*s ", dp->s_flags, np->flags);
 		if (S_ISCHR(sp->st_mode) || S_ISBLK(sp->st_mode))
 			(void)printf("%*lld, %*lld ",
 			    dp->s_major, (long long)major(sp->st_rdev),
@@ -470,9 +469,11 @@ printtype(u_int mode)
 	case S_IFSOCK:
 		(void)putchar('=');
 		return (1);
+#ifdef S_IFWHT
 	case S_IFWHT:
 		(void)putchar('%');
 		return (1);
+#endif
 	}
 	if (mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
 		(void)putchar('*');

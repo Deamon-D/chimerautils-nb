@@ -36,6 +36,7 @@
  */
 
 #include <sys/stat.h>
+#include <stdint.h>
 
 struct ddfops {
 	int (*op_init)(void);

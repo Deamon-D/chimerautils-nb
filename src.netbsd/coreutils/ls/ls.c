@@ -46,6 +46,7 @@ __RCSID("$NetBSD: ls.c,v 1.79 2024/12/11 12:56:31 simonb Exp $");
 #endif
 #endif /* not lint */
 
+#include <sys/sysmacros.h>
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -88,7 +89,6 @@ int rval = EXIT_SUCCESS;	/* exit value - set if error encountered */
 int f_accesstime;		/* use time of last access */
 int f_column;			/* columnated format */
 int f_columnacross;		/* columnated format, sorted across */
-int f_flags;			/* show flags associated with a file */
 int f_grouponly;		/* long listing without owner */
 int f_humanize;			/* humanize the size field */
 int f_commas;			/* separate size field with comma */
@@ -258,9 +258,6 @@ ls_main(int argc, char *argv[])
 			break;
 		case 'O':
 			f_leafonly = 1;
-			break;
-		case 'o':
-			f_flags = 1;
 			break;
 		case 'P':
 			f_fullpath = 1;
@@ -592,14 +589,6 @@ display(FTSENT *p, FTSENT *list)
 					maxuser = ulen;
 				if ((glen = strlen(group)) > maxgroup)
 					maxgroup = glen;
-				if (f_flags) {
-					flags =
-					    flags_to_string((u_long)sp->st_flags, "-");
-					if ((flen = strlen(flags)) > maxflags)
-						maxflags = flen;
-				} else
-					flen = 0;
-
 				if ((np = malloc(sizeof(NAMES) +
 				    ulen + glen + flen + 2)) == NULL)
 					err(EXIT_FAILURE, NULL);
@@ -609,11 +598,6 @@ display(FTSENT *p, FTSENT *list)
 				np->group = &np->data[ulen + 1];
 				(void)strcpy(np->group, group);
 
-				if (f_flags) {
-					np->flags = &np->data[ulen + glen + 2];
-				  	(void)strcpy(np->flags, flags);
-					free(flags);
-				}
 				cur->fts_pointer = np;
 			}
 		}

@@ -148,6 +148,7 @@ main(int argc, char *argv[])
 		}
 		(void)fclose(fp);
 	} while(*argv);
+	free(buf);
 	exit(rval);
 }
 

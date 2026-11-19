@@ -242,7 +242,9 @@ cp -p usr/src/lib/libc/gen/setmode.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/string/strmode.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/vis.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/unvis.c ${CWD}/src.orig/compat
+cp -p usr/src/lib/libc/gen/pwcache.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libutil/strpct.c ${CWD}/src.orig/compat
+cp -p usr/src/lib/libc/gen/pwcache.h ${CWD}/src.orig/include
 cp -p usr/src/include/vis.h ${CWD}/src.orig/include
 
 # 'util' is our public library with stuff that may be missing in libc
@@ -282,6 +284,16 @@ cp -p usr/src/lib/libutil/ttymsg.c ${CWD}/src.netbsd/miscutils/wall
 # This file is needed for the time command
 cp -p usr/src/bin/csh/time.c ${CWD}/src.orig/miscutils/time/csh_time.c
 cp -p usr/src/bin/csh/time.c ${CWD}/src.netbsd/miscutils/time/csh_time.c
+
+# xinstall uses functions of this file
+cp -p usr/src/usr.sbin/mtree/getid.c ${CWD}/src.orig/coreutils/xinstall/
+cp -p usr/src/usr.sbin/mtree/mtree.h ${CWD}/src.orig/coreutils/xinstall/
+cp -p usr/src/usr.sbin/mtree/getid.c ${CWD}/src.netbsd/coreutils/xinstall/
+cp -p usr/src/usr.sbin/mtree/mtree.h ${CWD}/src.netbsd/coreutils/xinstall/
+
+# fmt uses this file from mail
+cp -p usr/src/usr.bin/mail/head.c ${CWD}/src.orig/coreutils/fmt
+cp -p usr/src/usr.bin/mail/head.c ${CWD}/src.netbsd/coreutils/fmt
 
 # This header is required for some programs
 cp -p usr/src/include/tzfile.h ${CWD}/src.orig/include

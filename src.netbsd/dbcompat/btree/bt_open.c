@@ -48,6 +48,7 @@ __RCSID("$NetBSD: bt_open.c,v 1.29 2016/09/24 21:31:25 christos Exp $");
  */
 
 #include "namespace.h"
+#include <sys/param.h>
 #include <sys/stat.h>
 
 #include <assert.h>
@@ -71,6 +72,7 @@ __RCSID("$NetBSD: bt_open.c,v 1.29 2016/09/24 21:31:25 christos Exp $");
 
 static int byteorder(void);
 static int nroot(BTREE *);
+static int tmp(void);
 
 /*
  * __BT_OPEN -- Open a btree.
@@ -201,12 +203,12 @@ __bt_open(const char *fname, int flags, mode_t mode, const BTREEINFO *openinfo,
 		default:
 			goto einval;
 		}
-		if ((t->bt_fd = __dbopen(fname, flags, mode, &sb)) == -1)
+		if ((t->bt_fd = open(fname, flags | O_CLOEXEC, mode)) == -1)
 			goto err;
 	} else {
 		if ((flags & O_ACCMODE) != O_RDWR)
 			goto einval;
-		if ((t->bt_fd = __dbtemp("bt.", &sb)) == -1)
+		if ((t->bt_fd = tmp()) == -1)
 			goto err;
 		F_SET(t, B_INMEM);
 	}
@@ -388,6 +390,29 @@ nroot(BTREE *t)
 	return (RET_SUCCESS);
 }
 
+static int
+tmp(void)
+{
+	sigset_t set, oset;
+	int fd, len;
+	char *envtmp;
+	char path[MAXPATHLEN];
+
+	envtmp = secure_getenv("TMPDIR");
+	len = snprintf(path,
+	    sizeof(path), "%s/bt.XXXXXXXXXX", envtmp ? envtmp : "/tmp");
+	if (len < 0 || len >= (int)sizeof(path)) {
+		errno = ENAMETOOLONG;
+		return(-1);
+	}
+
+	(void)sigfillset(&set);
+	(void)sigprocmask(SIG_BLOCK, &set, &oset);
+	if ((fd = mkostemp(path, O_CLOEXEC)) != -1)
+		(void)unlink(path);
+	(void)sigprocmask(SIG_SETMASK, &oset, NULL);
+	return(fd);
+}
 static int
 byteorder(void)
 {

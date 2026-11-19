@@ -71,8 +71,12 @@ dbopen(const char *fname, int flags, mode_t mode, DBTYPE type,
 			return (__bt_open(fname, flags & USE_OPEN_FLAGS,
 			    mode, openinfo, (int)(flags & DB_FLAGS)));
 		case DB_HASH:
+#if 0
 			return (__hash_open(fname, flags & USE_OPEN_FLAGS,
 			    mode, openinfo, (int)(flags & DB_FLAGS)));
+#else
+				break;
+#endif
 		case DB_RECNO:
 			return (__rec_open(fname, flags & USE_OPEN_FLAGS,
 			    mode, openinfo, (int)(flags & DB_FLAGS)));

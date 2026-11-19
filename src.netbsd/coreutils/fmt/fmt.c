@@ -192,7 +192,7 @@ getnum(const char *str, const char *what, size_t *res, int badnum)
 	errno = 0;
 	ul = strtoul(str, &ep, 0);
         if (*str != '\0' && *ep == '\0') {
-		 if ((errno == ERANGE && ul == ULONG_MAX) || ul > SIZE_T_MAX)
+		 if ((errno == ERANGE && ul == ULONG_MAX) || ul > SIZE_MAX)
 			errx(1, "%s number `%s' too big", what, str);
 		*res = (size_t)ul;
 		return 1;
@@ -200,6 +200,46 @@ getnum(const char *str, const char *what, size_t *res, int badnum)
 		errx(1, "Bad %s number `%s'", what, str);
 
 	return 0;
+}
+
+#define BUF_PIECE 1024
+
+static wchar_t *get_wln(FILE *f, size_t *len, wchar_t **sbuf, size_t *blen) {
+	wchar_t *wptr;
+	size_t wlen;
+
+	wptr = fgetws(*sbuf, *blen, f);
+	if (wptr) {
+		wlen = wcslen(wptr);
+		if (wptr[wlen - 1] == '\n' || feof(f)) {
+			*len = wlen;
+			return wptr;
+		}
+	} else {
+		return NULL;
+	}
+
+	for (;;) {
+		wchar_t *nptr;
+		*blen = wlen + BUF_PIECE;
+		*sbuf = realloc(*sbuf, *blen * sizeof(wchar_t));
+		if (!*sbuf) err(1, "realloc");
+
+		nptr = fgetws(*sbuf + wlen, BUF_PIECE, f);
+		if (!nptr) {
+			if (feof(f))
+				break;
+			return NULL;
+		}
+
+		wlen += wcslen(nptr);
+		if ((*sbuf)[wlen - 1] == '\n' || feof(f)) {
+			break;
+		}
+	}
+
+	*len = wlen;
+	return *sbuf;
 }
 
 /*
@@ -215,10 +255,12 @@ fmt(FILE *fi)
 	wint_t c;
 	int add_space;
 	size_t len, col, i;
+        size_t bufl = BUF_PIECE;
+	wchar_t *buf = malloc(bufl * sizeof(wchar_t));
 
 	if (center) {
 		for (;;) {
-			cp = fgetwln(fi, &len);
+			cp = get_wln(fi, &len, &buf, &bufl);
 			if (!cp)
 				return;
 
@@ -312,6 +354,8 @@ fmt(FILE *fi)
 		if (c != WEOF)
 			c = getwc(fi);
 	}
+
+        free(buf);
 	buf_end(&cbuf);
 	buf_end(&lbuf);
 }

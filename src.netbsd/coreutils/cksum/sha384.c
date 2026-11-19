@@ -7,6 +7,12 @@
 #include <sha2.h>	/* this hash type */
 #include <md5.h>	/* the hash we're replacing */
 
+/* avoid redefinition warning */
+#undef MD5Data
+#undef MD5Init
+#undef MD5Update
+#undef MD5End
+
 #define HASHTYPE	"SHA384"
 #define HASHLEN		96
 

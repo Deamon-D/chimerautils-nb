@@ -65,6 +65,7 @@ __RCSID("$NetBSD: date.c,v 1.70 2024/09/17 15:25:39 kre Exp $");
 #include <unistd.h>
 #include <util.h>
 #if !HAVE_NBTOOL_CONFIG_H
+#include <utmp.h>
 #include <utmpx.h>
 #endif
 
@@ -349,7 +350,7 @@ parse_iso_datetime(time_t * res, const char * string)
 static void
 setthetime(const char *p)
 {
-	struct timeval tv;
+	struct timeval tv, utx_tv;
 	time_t new_time;
 	struct tm *lt;
 	const char *dot, *t, *op;
@@ -534,8 +535,11 @@ setit:
 #ifndef HAVE_NBTOOL_CONFIG_H
 	struct utmpx utx;
 	memset(&utx, 0, sizeof(utx));
+	memset(&utx_tv, 0, sizeof(utx_tv));
 	utx.ut_type = OLD_TIME;
-	(void)gettimeofday(&utx.ut_tv, NULL);
+	(void)gettimeofday(&utx_tv, NULL);
+	utx.ut_tv.tv_sec = utx_tv.tv_sec;
+	utx.ut_tv.tv_usec = utx_tv.tv_usec;
 	pututxline(&utx);
 
 	if (nflag || netsettime(new_time)) {
@@ -555,7 +559,9 @@ setit:
 		logwtmp("{", "date", "");
 	}
 	utx.ut_type = NEW_TIME;
-	(void)gettimeofday(&utx.ut_tv, NULL);
+	(void)gettimeofday(&utx_tv, NULL);
+	utx.ut_tv.tv_sec = utx_tv.tv_sec;
+	utx.ut_tv.tv_usec = utx_tv.tv_usec;
 	pututxline(&utx);
 
 	if ((p = getlogin()) == NULL)

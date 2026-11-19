@@ -227,7 +227,7 @@ copy_cmd usr.bin/su
 copy_cmd usr.bin/tip
 copy_cmd usr.bin/vis
 copy_cmd usr.bin/unvis
-#copy_cmd contrib/netcat
+copy_cmd usr.bin/nc
 #copy_cmd contrib/nvi
 #copy_cmd contrib/one-true-awk "" awk
 #copy_cmd contrib/telnet

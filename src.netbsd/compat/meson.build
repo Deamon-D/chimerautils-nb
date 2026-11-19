@@ -9,6 +9,7 @@ libcompat_sources = [
     'strpct.c',
     'unvis.c',
     'vis.c',
+    '../../src.compat/b64.c',
     '../../src.compat/err.c',
     '../../src.compat/strlfuncs.c',
     '../../src.compat/signames.c',

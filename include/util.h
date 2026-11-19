@@ -114,5 +114,6 @@ char 	       *strspct(char *, size_t, intmax_t, intmax_t, size_t);
 char 	       *strpct_r(char *, size_t, uintmax_t, uintmax_t, size_t, uint32_t);
 char 	       *strspct_r(char *,size_t, intmax_t, intmax_t, size_t, uint32_t);
 uint32_t	strpct_round(uint32_t);
+int		compat_b64_ntop(unsigned char const *, size_t, char *, size_t);
 
 #endif

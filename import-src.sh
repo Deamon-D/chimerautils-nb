@@ -229,7 +229,7 @@ copy_cmd usr.bin/vis
 copy_cmd usr.bin/unvis
 copy_cmd usr.bin/nc
 #copy_cmd contrib/nvi
-#copy_cmd contrib/one-true-awk "" awk
+copy_cmd external/historical/nawk/dist "" awk
 #copy_cmd contrib/telnet
 
 # 'compat' is our static library with a subset of BSD library functions

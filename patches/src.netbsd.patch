@@ -41,6 +41,122 @@
  		(void)signal(SIGINT, intsave);
  		(void)signal(SIGQUIT, quitsave);
  		return pid == -1 ? -1 : status;
+--- src.orig/awk/b.c
++++ src.netbsd/awk/b.c
+@@ -36,7 +36,7 @@
+ #include <string.h>
+ #include <stdlib.h>
+ #include "awk.h"
+-#include "awkgram.h"
++#include "awkgram.tab.h"
+ 
+ #define MAXLIN 22
+ 
+--- src.orig/awk/lex.c
++++ src.netbsd/awk/lex.c
+@@ -31,7 +31,7 @@
+ #include <string.h>
+ #include <ctype.h>
+ #include "awk.h"
+-#include "awkgram.h"
++#include "awkgram.tab.h"
+ 
+ extern YYSTYPE	yylval;
+ extern bool	infunc;
+--- src.orig/awk/lib.c
++++ src.netbsd/awk/lib.c
+@@ -37,7 +37,7 @@
+ #include <limits.h>
+ #include <math.h>
+ #include "awk.h"
+-#include "awkgram.h"
++#include "awkgram.tab.h"
+ 
+ extern int u8_nextlen(const char *s);
+ 
+--- src.orig/awk/main.c
++++ src.netbsd/awk/main.c
+@@ -37,7 +37,7 @@
+ #include <string.h>
+ #include <signal.h>
+ #include "awk.h"
+-#include "awkgram.h"
++#include "awkgram.tab.h"
+ 
+ extern	char	**environ;
+ extern	int	nfields;
+--- src.orig/awk/maketab.c
++++ src.netbsd/awk/maketab.c
+@@ -36,7 +36,7 @@
+ #include <string.h>
+ #include <stdlib.h>
+ #include "awk.h"
+-#include "awkgram.h"
++#include "awkgram.tab.h"
+ 
+ struct xx
+ {	int token;
+@@ -127,7 +127,7 @@
+ 
+ 	printf("#include <stdio.h>\n");
+ 	printf("#include \"awk.h\"\n");
+-	printf("#include \"awkgram.h\"\n\n");
++	printf("#include \"awkgram.tab.h\"\n\n");
+ 
+ 	if (argc != 2) {
+ 		fprintf(stderr, "usage: maketab YTAB_H\n");
+--- src.orig/awk/parse.c
++++ src.netbsd/awk/parse.c
+@@ -31,7 +31,7 @@
+ #include <string.h>
+ #include <stdlib.h>
+ #include "awk.h"
+-#include "awkgram.h"
++#include "awkgram.tab.h"
+ 
+ Node *nodealloc(size_t n)
+ {
+--- src.orig/awk/proctab.c
++++ src.netbsd/awk/proctab.c
+@@ -1,6 +1,6 @@
+ #include <stdio.h>
+ #include "awk.h"
+-#include "awkgram.h"
++#include "awkgram.tab.h"
+ 
+ static const char * const printname[96] = {
+ 	"FIRSTTOKEN",	/* 257 */
+--- src.orig/awk/proto.h
++++ src.netbsd/awk/proto.h
+@@ -42,7 +42,7 @@
+ extern	void	freetr(Node *);
+ extern	int	quoted(const uschar **);
+ extern	int	*cclenter(const char *);
+-extern	noreturn void	overflo(const char *);
++extern	void	overflo(const char *);
+ extern	void	cfoll(fa *, Node *);
+ extern	int	first(Node *);
+ extern	void	follow(Node *);
+@@ -135,7 +135,7 @@
+ extern	void	bcheck2(int, int, int);
+ extern	void	SYNTAX(const char *, ...)
+     __attribute__((__format__(__printf__, 1, 2)));
+-extern	noreturn void	FATAL(const char *, ...)
++extern	void	FATAL(const char *, ...)
+     __attribute__((__format__(__printf__, 1, 2)));
+ extern	void	WARNING(const char *, ...)
+     __attribute__((__format__(__printf__, 1, 2)));
+--- src.orig/awk/run.c
++++ src.netbsd/awk/run.c
+@@ -41,7 +41,7 @@
+ #include <sys/types.h>
+ #include <sys/wait.h>
+ #include "awk.h"
+-#include "awkgram.h"
++#include "awkgram.tab.h"
+ 
+ 
+ static void stdinit(void);
 --- src.orig/compat/parsedate.y
 +++ src.netbsd/compat/parsedate.y
 @@ -819,7 +819,7 @@

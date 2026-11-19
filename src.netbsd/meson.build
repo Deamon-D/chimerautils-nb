@@ -13,7 +13,7 @@ subdir('dbcompat')
 
 # standalone toplevel projects
 
-#subdir('awk')
+subdir('awk')
 subdir('apply')
 subdir('compress')
 subdir('ed')

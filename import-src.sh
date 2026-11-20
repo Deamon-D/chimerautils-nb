@@ -10,7 +10,7 @@ set -e
 
 PATH=/bin:/usr/bin
 CWD="$(pwd)"
-TMPDIR="$(mktemp -d --tmpdir=${CWD})"
+TMPDIR="$(mktemp -d -p ${CWD})"
 . ${CWD}/upstream.conf
 
 fail_exit() {
@@ -32,7 +32,7 @@ cd ${TMPDIR}
 if [ -z "$SRCTAR" ]; then
     SRCTAR="src.tgz"
     curl -L --retry 3 --ftp-pasv -o "$SRCTAR" "$SRC" || fail_exit
-    echo "$SHA512  $SRCTAR" | sha512sum --status -c - || fail_exit
+    echo "SHA512 ($SRCTAR) = $SHA512" | cksum -a sha512 -q -c || fail_exit
 fi
 tar -xf "$SRCTAR"
 

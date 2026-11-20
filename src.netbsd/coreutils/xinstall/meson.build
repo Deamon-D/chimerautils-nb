@@ -7,7 +7,7 @@ xinstall_prog = executable(
     dependencies: [libcrypto],
 )
 
-meson.add_install_script(install_as, bindir, xinstall_prog, 'install', 'binstall')
+meson.add_install_script(install_as, bindir, xinstall_prog, 'install', 'xinstall')
 
 install_man('install.1')
-install_symlink('binstall.1', pointing_to: 'install.1', install_dir: man1dir)
+install_symlink('xinstall.1', pointing_to: 'install.1', install_dir: man1dir)

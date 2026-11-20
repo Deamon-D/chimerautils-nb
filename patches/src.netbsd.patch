@@ -3023,6 +3023,321 @@
  	seterrmsg("out of memory");
  	clear_undo_stack();
  	free(ustack);
+--- src.orig/findutils/find/find.h
++++ src.netbsd/findutils/find/find.h
+@@ -36,6 +36,7 @@
+ 
+ #include <regex.h>
+ #include <time.h>
++#include <stdint.h>
+ 
+ /* node type */
+ enum ntype {
+--- src.orig/findutils/find/function.c
++++ src.netbsd/findutils/find/function.c
+@@ -42,7 +42,7 @@
+ #endif /* not lint */
+ 
+ #include <sys/param.h>
+-#include <sys/stat.h>
++#include <sys/statvfs.h>
+ #include <sys/wait.h>
+ #include <sys/mount.h>
+ 
+@@ -468,14 +468,14 @@
+ 	if (entry->fts_level > 0 && strchr(entry->fts_accpath, '/') != NULL)
+ 		errx(1, "-delete: %s: relative path potentially not safe",
+ 			entry->fts_accpath);
+-
++#if 0
+ 	/* Turn off user immutable bits if running as root */
+ 	if ((entry->fts_statp->st_flags & (UF_APPEND|UF_IMMUTABLE)) &&
+ 	    !(entry->fts_statp->st_flags & (SF_APPEND|SF_IMMUTABLE)) &&
+ 	    geteuid() == 0)
+ 		chflags(entry->fts_accpath,
+ 		       entry->fts_statp->st_flags &= ~(UF_APPEND|UF_IMMUTABLE));
+-
++#endif
+ 	/* rmdir directories, unlink everything else */
+ 	if (S_ISDIR(entry->fts_statp->st_mode)) {
+ 		if (rmdir(entry->fts_accpath) < 0 && errno != ENOTEMPTY)
+@@ -723,6 +723,7 @@
+ 	size_t cnt;
+ 	int brace, lastbrace;
+ 	char **argv, **ap, *p;
++	const unsigned long ARG_MAX = sysconf(_SC_ARG_MAX);
+ 
+ 	isoutput = 1;
+ 
+@@ -962,6 +963,7 @@
+ int
+ f_flags(PLAN *plan, FTSENT *entry)
+ {
++#if 0
+ 	uint32_t flags;
+ 
+ 	flags = entry->fts_statp->st_flags;
+@@ -970,6 +972,9 @@
+ 	else
+ 		return (flags == plan->f_data);
+ 	/* NOTREACHED */
++#else
++	return 0;
++#endif
+ }
+ 
+ PLAN *
+@@ -990,9 +995,11 @@
+ 	}
+ 
+ 	flagset = 0;
++#if 0
+ 	if ((strcmp(flags, "none") != 0) &&
+ 	    (string_to_flags(&flags, &flagset, NULL) != 0))
+ 		errx(1, "%s: %s: illegal flags string", opt, flags);
++#endif
+ 	new->f_data = flagset;
+ 	return (new);
+ }
+@@ -1045,6 +1052,120 @@
+ 	return (new);
+ }
+ 
++struct mntinfo {
++	dev_t devn;
++	char fstype[64];
++};
++
++static char *unesc_mnt(char *beg) {
++	char *dest = beg;
++	char const *src = beg;
++	while (*src) {
++		char const *val;
++		unsigned char cv = '\0';
++		/* not escape */
++		if (*src != '\\') {
++			*dest++ = *src++;
++			continue;
++		}
++		/* double slash */
++		if (src[1] == '\\') {
++			++src;
++			*dest++ = *src++;
++			continue;
++		}
++		/* else unscape */
++		val = src + 1;
++		for (int i = 0; i < 3; ++i) {
++			if (*val >= '0' && *val <= '7') {
++				cv <<= 3;
++				cv += *val++ - '0';
++			} else
++				break;
++		}
++		if (cv) {
++			*dest++ = cv;
++			src = val;
++		} else
++			*dest++ = *src++;
++	}
++	*dest = '\0';
++	return beg;
++}
++
++const char *
++f_fstypename(dev_t curdev)
++{
++	static struct mntinfo *minfo = NULL;
++	static size_t ninfos = 0;
++	char curfstype[64];
++	/* to be freed */
++	if (!curdev) {
++		free(minfo);
++		minfo = NULL;
++		ninfos = 0;
++		return NULL;
++	}
++	if (!minfo) {
++		FILE *f = fopen("/proc/self/mountinfo", "rb");
++		if (!f)
++			return NULL;
++		char *lbuf = NULL;
++		size_t lsize = 0, ncap = 64;
++		minfo = malloc(ncap * sizeof(struct mntinfo));
++		if (!minfo)
++			err(1, "malloc");
++		const char *rfs = NULL;
++		while (getline(&lbuf, &lsize, f) > 0) {
++			struct stat mst;
++			char *mntpt;
++			memset(curfstype, 0, sizeof(curfstype));
++			/* extract fstype first; we cannot use the device
++			 * as that refers to a real block device always, and
++			 * e.g. btrfs/zfs will report "fake" st_dev so we need
++			 * to stat each mountpoint later for that "fake" st_dev
++			 */
++			if (sscanf(
++			    lbuf, "%*d %*d %*u:%*u %*s %*s %*[^-]- %63s %*s %*s",
++			    curfstype
++			) <= 0)
++				continue;
++			/* now get the mountpoint root... */
++			mntpt = strchr(lbuf, '/');
++			/* skip over it to get the real mountpoint */
++			mntpt = strchr(mntpt + 1, '/');
++			/* the path is escaped, terminate at space */
++			*strchr(mntpt, ' ') = '\0';
++			/* now unscape spaces and whatever */
++			mntpt = unesc_mnt(mntpt);
++			/* if this fails it's probably because no access or
++			 * whatever, so ignore that, not worth handling
++			 */
++			if (lstat(mntpt, &mst) != 0)
++				continue;
++			if (ninfos == ncap) {
++				ncap *= 2;
++				minfo = realloc(minfo, ncap * sizeof(struct mntinfo));
++				if (!minfo)
++					err(1, "realloc");
++			}
++			minfo[ninfos].devn = mst.st_dev;
++			memcpy(minfo[ninfos].fstype, curfstype, sizeof(curfstype));
++			if (minfo[ninfos].devn == curdev)
++				rfs = minfo[ninfos].fstype;
++			++ninfos;
++		}
++		free(lbuf);
++		fclose(f);
++		return rfs;
++	}
++	for (size_t i = 0; i < ninfos; ++i) {
++		if (minfo[i].devn == curdev)
++			return minfo[i].fstype;
++	}
++	return NULL;
++}
++
+ /*
+  * -fstype functions --
+  *
+@@ -1057,7 +1178,7 @@
+ 	static int first = 1;
+ 	struct statvfs sb;
+ 	static short val;
+-	static char fstype[sizeof(sb.f_fstypename)];
++	static const char *fstype;
+ 	char *p, save[2];
+ 
+ 	memset(&save, 0, sizeof save);	/* XXX gcc */
+@@ -1099,13 +1220,13 @@
+ 		 * always copy both of them.
+ 		 */
+ 		val = sb.f_flag;
+-		strlcpy(fstype, sb.f_fstypename, sizeof(fstype));
++		fstype = f_fstypename(curdev);
+ 	}
+ 	switch (plan->flags) {
+ 	case F_MTFLAG:
+ 		return (val & plan->mt_data);
+ 	case F_MTTYPE:
+-		return (strncmp(fstype, plan->c_data, sizeof(fstype)) == 0);
++		return fstype && (strcmp(fstype, plan->c_data) == 0);
+ 	default:
+ 		abort();
+ 	}
+@@ -1123,17 +1244,10 @@
+ 	new = palloc(N_FSTYPE, f_fstype);
+ 
+ 	switch (*arg) {
+-	case 'l':
+-		if (!strcmp(arg, "local")) {
+-			new->flags = F_MTFLAG;
+-			new->mt_data = MNT_LOCAL;
+-			return (new);
+-		}
+-		break;
+ 	case 'r':
+ 		if (!strcmp(arg, "rdonly")) {
+ 			new->flags = F_MTFLAG;
+-			new->mt_data = MNT_RDONLY;
++			new->mt_data = ST_RDONLY;
+ 			return (new);
+ 		}
+ 		break;
+--- src.orig/findutils/find/ls.c
++++ src.netbsd/findutils/find/ls.c
+@@ -38,6 +38,7 @@
+ #endif
+ #endif /* not lint */
+ 
++#include <sys/sysmacros.h>
+ #include <sys/param.h>
+ #include <sys/stat.h>
+ 
+--- src.orig/findutils/find/main.c
++++ src.netbsd/findutils/find/main.c
+@@ -67,7 +67,7 @@
+ int isoutput;			/* user specified output operator */
+ int issort;			/* sort directory entries */
+ int isxargs;			/* don't permit xargs delimiting chars */
+-int regcomp_flags = REG_BASIC;	/* regex compilation flags */
++int regcomp_flags = 0;		/* regex compilation flags */
+ 
+ __dead static void usage(void);
+ 
+--- src.orig/findutils/find/misc.c
++++ src.netbsd/findutils/find/misc.c
+@@ -156,7 +156,7 @@
+ 	if (ttyfd == -1)
+ 		goto out;
+ 
+-	n = snprintf_ss(buf, sizeof(buf), "%s: path %s\n", getprogname(), 
++	n = snprintf(buf, sizeof(buf), "%s: path %s\n", getprogname(), 
+ 	    g_entry->fts_path);
+ 
+ 	if (n <= 0)
+--- src.orig/findutils/xargs/xargs.c
++++ src.netbsd/findutils/xargs/xargs.c
+@@ -601,7 +601,7 @@
+ 		} else if (WIFSIGNALED (status)) {
+ 			if (WTERMSIG(status) < NSIG) {
+ 				warnx("%s terminated by SIG%s", name,
+-				    sys_signame[WTERMSIG(status)]);
++				    signum_to_signame(WTERMSIG(status)));
+ 			} else {
+ 				warnx("%s terminated by signal %d", name,
+ 				    WTERMSIG(status));
+@@ -620,17 +620,18 @@
+ prompt(void)
+ {
+ 	regex_t cre;
+-	size_t rsize;
++	size_t buflen = 0;
++	ssize_t rsize;
+ 	int match;
+-	char *response;
++	char *response = NULL;
+ 	FILE *ttyfp;
+ 
+ 	if ((ttyfp = fopen(_PATH_TTY, "r")) == NULL)
+ 		return (2);	/* Indicate that the TTY failed to open. */
+ 	(void)fprintf(stderr, "?...");
+ 	(void)fflush(stderr);
+-	if ((response = fgetln(ttyfp, &rsize)) == NULL ||
+-	    regcomp(&cre, nl_langinfo(YESEXPR), REG_BASIC) != 0) {
++	if ((rsize = getline(&response, &buflen, ttyfp)) == -1 ||
++	    regcomp(&cre, nl_langinfo(YESEXPR), 0) != 0) {
+ 		(void)fclose(ttyfp);
+ 		return (0);
+ 	}
+@@ -638,6 +639,7 @@
+ 	match = regexec(&cre, response, 0, NULL, 0);
+ 	(void)fclose(ttyfp);
+ 	regfree(&cre);
++	free(response);
+ 	return (match == 0);
+ }
+ 
 --- src.orig/gencat/gencat.c
 +++ src.netbsd/gencat/gencat.c
 @@ -95,6 +95,29 @@
@@ -3632,14 +3947,14 @@
  #include "atomicio.h"
  
 +#ifndef IPTOS_DSCP_CS0
-+#define IPTOS_DSCP_CS0          0x00
-+#define IPTOS_DSCP_CS1          0x20
-+#define IPTOS_DSCP_CS2          0x40
-+#define IPTOS_DSCP_CS3          0x60
-+#define IPTOS_DSCP_CS4          0x80
-+#define IPTOS_DSCP_CS5          0xa0
-+#define IPTOS_DSCP_CS6          0xc0
-+#define IPTOS_DSCP_CS7          0xe0
++#define	IPTOS_DSCP_CS0          0x00
++#define	IPTOS_DSCP_CS1          0x20
++#define	IPTOS_DSCP_CS2          0x40
++#define	IPTOS_DSCP_CS3          0x60
++#define	IPTOS_DSCP_CS4          0x80
++#define	IPTOS_DSCP_CS5          0xa0
++#define	IPTOS_DSCP_CS6          0xc0
++#define	IPTOS_DSCP_CS7          0xe0
 +#endif /* IPTOS_DSCP_CS0 */
 +
  #ifdef __NetBSD__

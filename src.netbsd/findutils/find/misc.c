@@ -156,7 +156,7 @@ show_path(int sig)
 	if (ttyfd == -1)
 		goto out;
 
-	n = snprintf_ss(buf, sizeof(buf), "%s: path %s\n", getprogname(), 
+	n = snprintf(buf, sizeof(buf), "%s: path %s\n", getprogname(), 
 	    g_entry->fts_path);
 
 	if (n <= 0)

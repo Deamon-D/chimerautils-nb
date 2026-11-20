@@ -38,6 +38,7 @@ __RCSID("$NetBSD: ls.c,v 1.21 2011/08/31 16:24:57 plunky Exp $");
 #endif
 #endif /* not lint */
 
+#include <sys/sysmacros.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 

@@ -5,7 +5,8 @@
 #                 a new version of NetBSD comes out.
 #
 # Original author: David Cantrell <david.l.cantrell@gmail.com>
-#
+# Adapted by: littlefly365
+set -e
 
 PATH=/bin:/usr/bin
 CWD="$(pwd)"
@@ -338,19 +339,6 @@ rm -f ${CWD}/src.netbsd/tip/tip/Makefile*
 # temove telnetd
 rm -rf ${CWD}/src.orig/telnet/telnetd
 rm -rf ${CWD}/src.netbsd/telnet/telnetd
-
-# remove our own scripts before patching
-rm -f ${CWD}/src.netbsd/findutils/locate/updatedb.sh.in
-rm -f ${CWD}/src.netbsd/nvi/*.sh
-rm -f ${CWD}/src.netbsd/libfetch/*.sh
-
-# make the locate scripts possible to process
-for sc in ${CWD}/src.orig/findutils/locate/locate/*.sh; do
-    mv "$sc" "$sc.in"
-done
-for sc in ${CWD}/src.netbsd/findutils/locate/locate/*.sh; do
-    mv "$sc" "$sc.in"
-done
 
 # meh
 rm -rf ${CWD}/src.orig/awk/testdir

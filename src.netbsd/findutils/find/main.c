@@ -67,7 +67,7 @@ int isdepth;			/* do directories on post-order visit */
 int isoutput;			/* user specified output operator */
 int issort;			/* sort directory entries */
 int isxargs;			/* don't permit xargs delimiting chars */
-int regcomp_flags = REG_BASIC;	/* regex compilation flags */
+int regcomp_flags = 0;		/* regex compilation flags */
 
 __dead static void usage(void);
 

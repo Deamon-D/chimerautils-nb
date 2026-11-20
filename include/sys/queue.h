@@ -48,6 +48,7 @@ struct {								\
 
 #define	LIST_FIRST(head)		((head)->lh_first)
 #define	LIST_END(head)			NULL
+#define	LIST_EMPTY(head)		((head)->lh_first == LIST_END(head))
 #define	LIST_NEXT(elm, field)		((elm)->field.le_next)
 
 #define	LIST_FOREACH(var, head, field)					\

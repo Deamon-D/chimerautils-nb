@@ -601,7 +601,7 @@ waitchildren(const char *name, int waitall)
 		} else if (WIFSIGNALED (status)) {
 			if (WTERMSIG(status) < NSIG) {
 				warnx("%s terminated by SIG%s", name,
-				    sys_signame[WTERMSIG(status)]);
+				    signum_to_signame(WTERMSIG(status)));
 			} else {
 				warnx("%s terminated by signal %d", name,
 				    WTERMSIG(status));
@@ -620,17 +620,18 @@ static int
 prompt(void)
 {
 	regex_t cre;
-	size_t rsize;
+	size_t buflen = 0;
+	ssize_t rsize;
 	int match;
-	char *response;
+	char *response = NULL;
 	FILE *ttyfp;
 
 	if ((ttyfp = fopen(_PATH_TTY, "r")) == NULL)
 		return (2);	/* Indicate that the TTY failed to open. */
 	(void)fprintf(stderr, "?...");
 	(void)fflush(stderr);
-	if ((response = fgetln(ttyfp, &rsize)) == NULL ||
-	    regcomp(&cre, nl_langinfo(YESEXPR), REG_BASIC) != 0) {
+	if ((rsize = getline(&response, &buflen, ttyfp)) == -1 ||
+	    regcomp(&cre, nl_langinfo(YESEXPR), 0) != 0) {
 		(void)fclose(ttyfp);
 		return (0);
 	}
@@ -638,6 +639,7 @@ prompt(void)
 	match = regexec(&cre, response, 0, NULL, 0);
 	(void)fclose(ttyfp);
 	regfree(&cre);
+	free(response);
 	return (match == 0);
 }
 

@@ -42,7 +42,7 @@ __RCSID("$NetBSD: function.c,v 1.81 2024/02/05 21:46:07 andvar Exp $");
 #endif /* not lint */
 
 #include <sys/param.h>
-#include <sys/stat.h>
+#include <sys/statvfs.h>
 #include <sys/wait.h>
 #include <sys/mount.h>
 
@@ -468,14 +468,14 @@ f_delete(PLAN *plan __unused, FTSENT *entry)
 	if (entry->fts_level > 0 && strchr(entry->fts_accpath, '/') != NULL)
 		errx(1, "-delete: %s: relative path potentially not safe",
 			entry->fts_accpath);
-
+#if 0
 	/* Turn off user immutable bits if running as root */
 	if ((entry->fts_statp->st_flags & (UF_APPEND|UF_IMMUTABLE)) &&
 	    !(entry->fts_statp->st_flags & (SF_APPEND|SF_IMMUTABLE)) &&
 	    geteuid() == 0)
 		chflags(entry->fts_accpath,
 		       entry->fts_statp->st_flags &= ~(UF_APPEND|UF_IMMUTABLE));
-
+#endif
 	/* rmdir directories, unlink everything else */
 	if (S_ISDIR(entry->fts_statp->st_mode)) {
 		if (rmdir(entry->fts_accpath) < 0 && errno != ENOTEMPTY)
@@ -723,6 +723,7 @@ c_exec(char ***argvp, int isok, char *opt)
 	size_t cnt;
 	int brace, lastbrace;
 	char **argv, **ap, *p;
+	const unsigned long ARG_MAX = sysconf(_SC_ARG_MAX);
 
 	isoutput = 1;
 
@@ -962,6 +963,7 @@ c_false(char ***argvp, int isok, char *opt)
 int
 f_flags(PLAN *plan, FTSENT *entry)
 {
+#if 0
 	uint32_t flags;
 
 	flags = entry->fts_statp->st_flags;
@@ -970,6 +972,9 @@ f_flags(PLAN *plan, FTSENT *entry)
 	else
 		return (flags == plan->f_data);
 	/* NOTREACHED */
+#else
+	return 0;
+#endif
 }
 
 PLAN *
@@ -990,9 +995,11 @@ c_flags(char ***argvp, int isok, char *opt)
 	}
 
 	flagset = 0;
+#if 0
 	if ((strcmp(flags, "none") != 0) &&
 	    (string_to_flags(&flags, &flagset, NULL) != 0))
 		errx(1, "%s: %s: illegal flags string", opt, flags);
+#endif
 	new->f_data = flagset;
 	return (new);
 }
@@ -1045,6 +1052,120 @@ c_fprint(char ***argvp, int isok, char *opt)
 	return (new);
 }
 
+struct mntinfo {
+	dev_t devn;
+	char fstype[64];
+};
+
+static char *unesc_mnt(char *beg) {
+	char *dest = beg;
+	char const *src = beg;
+	while (*src) {
+		char const *val;
+		unsigned char cv = '\0';
+		/* not escape */
+		if (*src != '\\') {
+			*dest++ = *src++;
+			continue;
+		}
+		/* double slash */
+		if (src[1] == '\\') {
+			++src;
+			*dest++ = *src++;
+			continue;
+		}
+		/* else unscape */
+		val = src + 1;
+		for (int i = 0; i < 3; ++i) {
+			if (*val >= '0' && *val <= '7') {
+				cv <<= 3;
+				cv += *val++ - '0';
+			} else
+				break;
+		}
+		if (cv) {
+			*dest++ = cv;
+			src = val;
+		} else
+			*dest++ = *src++;
+	}
+	*dest = '\0';
+	return beg;
+}
+
+const char *
+f_fstypename(dev_t curdev)
+{
+	static struct mntinfo *minfo = NULL;
+	static size_t ninfos = 0;
+	char curfstype[64];
+	/* to be freed */
+	if (!curdev) {
+		free(minfo);
+		minfo = NULL;
+		ninfos = 0;
+		return NULL;
+	}
+	if (!minfo) {
+		FILE *f = fopen("/proc/self/mountinfo", "rb");
+		if (!f)
+			return NULL;
+		char *lbuf = NULL;
+		size_t lsize = 0, ncap = 64;
+		minfo = malloc(ncap * sizeof(struct mntinfo));
+		if (!minfo)
+			err(1, "malloc");
+		const char *rfs = NULL;
+		while (getline(&lbuf, &lsize, f) > 0) {
+			struct stat mst;
+			char *mntpt;
+			memset(curfstype, 0, sizeof(curfstype));
+			/* extract fstype first; we cannot use the device
+			 * as that refers to a real block device always, and
+			 * e.g. btrfs/zfs will report "fake" st_dev so we need
+			 * to stat each mountpoint later for that "fake" st_dev
+			 */
+			if (sscanf(
+			    lbuf, "%*d %*d %*u:%*u %*s %*s %*[^-]- %63s %*s %*s",
+			    curfstype
+			) <= 0)
+				continue;
+			/* now get the mountpoint root... */
+			mntpt = strchr(lbuf, '/');
+			/* skip over it to get the real mountpoint */
+			mntpt = strchr(mntpt + 1, '/');
+			/* the path is escaped, terminate at space */
+			*strchr(mntpt, ' ') = '\0';
+			/* now unscape spaces and whatever */
+			mntpt = unesc_mnt(mntpt);
+			/* if this fails it's probably because no access or
+			 * whatever, so ignore that, not worth handling
+			 */
+			if (lstat(mntpt, &mst) != 0)
+				continue;
+			if (ninfos == ncap) {
+				ncap *= 2;
+				minfo = realloc(minfo, ncap * sizeof(struct mntinfo));
+				if (!minfo)
+					err(1, "realloc");
+			}
+			minfo[ninfos].devn = mst.st_dev;
+			memcpy(minfo[ninfos].fstype, curfstype, sizeof(curfstype));
+			if (minfo[ninfos].devn == curdev)
+				rfs = minfo[ninfos].fstype;
+			++ninfos;
+		}
+		free(lbuf);
+		fclose(f);
+		return rfs;
+	}
+	for (size_t i = 0; i < ninfos; ++i) {
+		if (minfo[i].devn == curdev)
+			return minfo[i].fstype;
+	}
+	return NULL;
+}
+
 /*
  * -fstype functions --
  *
@@ -1057,7 +1178,7 @@ f_fstype(PLAN *plan, FTSENT *entry)
 	static int first = 1;
 	struct statvfs sb;
 	static short val;
-	static char fstype[sizeof(sb.f_fstypename)];
+	static const char *fstype;
 	char *p, save[2];
 
 	memset(&save, 0, sizeof save);	/* XXX gcc */
@@ -1099,13 +1220,13 @@ f_fstype(PLAN *plan, FTSENT *entry)
 		 * always copy both of them.
 		 */
 		val = sb.f_flag;
-		strlcpy(fstype, sb.f_fstypename, sizeof(fstype));
+		fstype = f_fstypename(curdev);
 	}
 	switch (plan->flags) {
 	case F_MTFLAG:
 		return (val & plan->mt_data);
 	case F_MTTYPE:
-		return (strncmp(fstype, plan->c_data, sizeof(fstype)) == 0);
+		return fstype && (strcmp(fstype, plan->c_data) == 0);
 	default:
 		abort();
 	}
@@ -1123,17 +1244,10 @@ c_fstype(char ***argvp, int isok, char *opt)
 	new = palloc(N_FSTYPE, f_fstype);
 
 	switch (*arg) {
-	case 'l':
-		if (!strcmp(arg, "local")) {
-			new->flags = F_MTFLAG;
-			new->mt_data = MNT_LOCAL;
-			return (new);
-		}
-		break;
 	case 'r':
 		if (!strcmp(arg, "rdonly")) {
 			new->flags = F_MTFLAG;
-			new->mt_data = MNT_RDONLY;
+			new->mt_data = ST_RDONLY;
 			return (new);
 		}
 		break;

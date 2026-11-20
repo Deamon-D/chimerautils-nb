@@ -47,5 +47,5 @@ endif
 
 subdir('coreutils')
 subdir('diffutils')
-#subdir('findutils')
+subdir('findutils')
 subdir('miscutils')

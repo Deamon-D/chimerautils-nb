@@ -60,7 +60,7 @@ __RCSID("$NetBSD: kill.c,v 1.33 2022/05/16 10:53:14 kre Exp $");
 #ifdef SHELL            /* sh (aka ash) builtin */
 int killcmd(int, char *argv[]);
 #define main killcmd
-#include "../../bin/sh/bltin/bltin.h"
+#include "bltin/bltin.h"
 #endif /* SHELL */ 
 
 __dead static void nosig(const char *);
@@ -106,9 +106,9 @@ main(int argc, char *argv[])
 				numsig = signum(sn);
 				if (numsig >= 128)
 					numsig -= 128;
-				if (numsig == 0 || numsig >= _NSIG)
+				if (numsig == 0 || signalnext(numsig) == -1)
 					nosig(sn);
-				sn = signum_to_signame(numsig);
+				sn = signalname(numsig);
 				if (sn == NULL)
 					errx(EXIT_FAILURE,
 					   "unknown signal number: %d", numsig);
@@ -132,7 +132,7 @@ main(int argc, char *argv[])
 			}
 			if (strcmp(sn, "0") == 0)
 				numsig = 0;
-			else if ((numsig = signame_to_signum(sn)) == 0) {
+			else if ((numsig = signalnumber(sn)) == 0) {
 				if (sn != argv[0])
 					goto trysignal;
 				nosig(sn);
@@ -153,14 +153,14 @@ main(int argc, char *argv[])
 		default:
  trysignal:
 			sn = *argv + 1;
-			if (((numsig = signame_to_signum(sn)) == 0)) {
+			if (((numsig = signalnumber(sn)) == 0)) {
 				if (isdigit((unsigned char)*sn))
 					numsig = signum(sn);
 				else
 					nosig(sn);
 			}
 
-			if (numsig != 0 && numsig >= _NSIG)
+			if (numsig != 0 && signalnext(numsig) == -1)
 				nosig(sn);
 			argc--, argv++;
 			break;
@@ -286,8 +286,8 @@ printsignals(FILE *fp, int len)
 	if (posix && pad)
 		pad = 1;
 
-	for (sig = 0; sig < _NSIG; sig++) {
-		name = signum_to_signame(sig);
+	for (sig = 0; (sig = signalnext(sig)) != 0; ) {
+		name = signalname(sig);
 		if (name == NULL)
 			continue;
 

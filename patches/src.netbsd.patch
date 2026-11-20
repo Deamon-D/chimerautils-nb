@@ -400,6 +400,87 @@
  
  	return 0;
  }
+--- src.orig/coreutils/cksum/cksum.1
++++ src.netbsd/coreutils/cksum/cksum.1
+@@ -37,10 +37,7 @@
+ .Os
+ .Sh NAME
+ .Nm cksum ,
+-.Nm md2 ,
+-.Nm md4 ,
+ .Nm md5 ,
+-.Nm rmd160 ,
+ .Nm sha1 ,
+ .Nm sha256 ,
+ .Nm sha384 ,
+@@ -58,22 +55,10 @@
+ .Op Fl a Ar algorithm Oo Fl pqtx Oc Oo Fl s Ar string Oc
+ .Op Fl o Ar 1 Ns | Ns Ar 2
+ .Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
+-.Nm md2
+-.Op Fl npqtx
+-.Op Fl s Ar string
+-.Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
+-.Nm md4
+-.Op Fl npqtx
+-.Op Fl s Ar string
+-.Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
+ .Nm md5
+ .Op Fl npqtx
+ .Op Fl s Ar string
+ .Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
+-.Nm rmd160
+-.Op Fl npqtx
+-.Op Fl s Ar string
+-.Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
+ .Nm sha1
+ .Op Fl npqtx
+ .Op Fl s Ar string
+@@ -110,15 +95,13 @@
+ It is provided for compatibility only.
+ .Pp
+ The
+-.Nm md2 ,
+ .Nm md4 ,
+ .Nm md5 ,
+ .Nm sha1 ,
+ .Nm sha256 ,
+ .Nm sha384 ,
+-.Nm sha512 ,
+ and
+-.Nm rmd160
++.Nm sha512 
+ utilities compute cryptographic hash functions, and write to standard
+ output the hexadecimal representation of the hash of their input.
+ .Pp
+@@ -133,10 +116,7 @@
+ .Bl -column -offset indent ".Sy Algorithm" ".Sy Bits" ".Sy Description"
+ .It Sy Algorithm Ta Sy Bits Ta Sy Description
+ .It Li CRC Ta 32 Ta Default CRC algorithm
+-.It Li MD2 Ta 128 Ta MD2, per Li RFC1319
+-.It Li MD4 Ta 128 Ta MD4, per Li RFC1320
+ .It Li MD5 Ta 128 Ta MD5, per Li RFC1321
+-.It Li RMD160 Ta 160 Ta RIPEMD-160
+ .It Li SHA1 Ta 160 Ta SHA-1, per Li FIPS PUB 180-1
+ .It Li SHA256 Ta 256 Ta SHA-2
+ .It Li SHA384 Ta 384 Ta SHA-2
+@@ -294,16 +274,6 @@
+ .Re
+ .Rs
+ .%A R. Rivest
+-.%T The MD2 Message-Digest Algorithm
+-.%O RFC 1319
+-.Re
+-.Rs
+-.%A R. Rivest
+-.%T The MD4 Message-Digest Algorithm
+-.%O RFC 1186 and RFC 1320
+-.Re
+-.Rs
+-.%A R. Rivest
+ .%T The MD5 Message-Digest Algorithm
+ .%O RFC 1321
+ .Re
 --- src.orig/coreutils/cksum/cksum.c
 +++ src.netbsd/coreutils/cksum/cksum.c
 @@ -91,10 +91,7 @@
@@ -1756,6 +1837,17 @@
  	exit(1);
  }
  
+--- src.orig/coreutils/printf/printf.c
++++ src.netbsd/coreutils/printf/printf.c
+@@ -95,7 +95,7 @@
+ 
+ #ifdef SHELL		/* sh (aka ash) builtin */
+ #define main printfcmd
+-#include "../../bin/sh/bltin/bltin.h"
++#include "bltin/bltin.h"
+ #endif /* SHELL */
+ 
+ #define PF(f, func) { \
 --- src.orig/coreutils/rm/rm.c
 +++ src.netbsd/coreutils/rm/rm.c
 @@ -243,13 +243,13 @@
@@ -2461,7 +2553,7 @@
  
  		for (i = 1; i < sys_nsig; i++) {
 -			if (strcasecmp(str, sys_signame[i]) == 0)
-+			if (strcasecmp(str, signum_to_signame(i)) == 0)
++			if (strcasecmp(str, signalname(i)) == 0)
  				return (i);
  		}
  
@@ -3303,7 +3395,7 @@
  			if (WTERMSIG(status) < NSIG) {
  				warnx("%s terminated by SIG%s", name,
 -				    sys_signame[WTERMSIG(status)]);
-+				    signum_to_signame(WTERMSIG(status)));
++				    signalname(WTERMSIG(status)));
  			} else {
  				warnx("%s terminated by signal %d", name,
  				    WTERMSIG(status));
@@ -3580,55 +3672,15 @@
  		memset(&sa, 0, sizeof(sa));
 --- src.orig/miscutils/kill/kill.c
 +++ src.netbsd/miscutils/kill/kill.c
-@@ -106,9 +106,9 @@
- 				numsig = signum(sn);
- 				if (numsig >= 128)
- 					numsig -= 128;
--				if (numsig == 0 || signalnext(numsig) == -1)
-+				if (numsig == 0 || numsig >= _NSIG)
- 					nosig(sn);
--				sn = signalname(numsig);
-+				sn = signum_to_signame(numsig);
- 				if (sn == NULL)
- 					errx(EXIT_FAILURE,
- 					   "unknown signal number: %d", numsig);
-@@ -132,7 +132,7 @@
- 			}
- 			if (strcmp(sn, "0") == 0)
- 				numsig = 0;
--			else if ((numsig = signalnumber(sn)) == 0) {
-+			else if ((numsig = signame_to_signum(sn)) == 0) {
- 				if (sn != argv[0])
- 					goto trysignal;
- 				nosig(sn);
-@@ -153,14 +153,14 @@
- 		default:
-  trysignal:
- 			sn = *argv + 1;
--			if (((numsig = signalnumber(sn)) == 0)) {
-+			if (((numsig = signame_to_signum(sn)) == 0)) {
- 				if (isdigit((unsigned char)*sn))
- 					numsig = signum(sn);
- 				else
- 					nosig(sn);
- 			}
+@@ -60,7 +60,7 @@
+ #ifdef SHELL            /* sh (aka ash) builtin */
+ int killcmd(int, char *argv[]);
+ #define main killcmd
+-#include "../../bin/sh/bltin/bltin.h"
++#include "bltin/bltin.h"
+ #endif /* SHELL */ 
  
--			if (numsig != 0 && signalnext(numsig) == -1)
-+			if (numsig != 0 && numsig >= _NSIG)
- 				nosig(sn);
- 			argc--, argv++;
- 			break;
-@@ -286,8 +286,8 @@
- 	if (posix && pad)
- 		pad = 1;
- 
--	for (sig = 0; (sig = signalnext(sig)) != 0; ) {
--		name = signalname(sig);
-+	for (sig = 0; sig < _NSIG; sig++) {
-+		name = signum_to_signame(sig);
- 		if (name == NULL)
- 			continue;
- 
+ __dead static void nosig(const char *);
 --- src.orig/miscutils/logger/logger.c
 +++ src.netbsd/miscutils/logger/logger.c
 @@ -48,6 +48,7 @@
@@ -4035,6 +4087,419 @@
  /*
   * Linked list of units (strings and files) to be compiled
   */
+--- src.orig/sh/error.h
++++ src.netbsd/sh/error.h
+@@ -117,6 +117,7 @@
+  * so we use sigsetjmp instead, and explicitly do not save it.
+  * sh does a lot of setjmp() calls (fewer longjmp though).
+  */
+-
++#ifndef __linux__
+ #define setjmp(jmploc)		sigsetjmp((jmploc), 0)
+ #define longjmp(jmploc, val)	siglongjmp((jmploc), (val))
++#endif
+--- src.orig/sh/eval.c
++++ src.netbsd/sh/eval.c
+@@ -55,7 +55,6 @@
+ #include <sys/param.h>
+ #include <sys/types.h>
+ #include <sys/wait.h>
+-#include <sys/sysctl.h>
+ 
+ /*
+  * Evaluate a command.
+@@ -817,14 +816,14 @@
+ syspath(void)
+ {
+ 	static char *sys_path = NULL;
+-	static int mib[] = {CTL_USER, USER_CS_PATH};
+ 	static char def_path[] = "PATH=/usr/bin:/bin:/usr/sbin:/sbin";
+ 	size_t len;
+ 
+ 	if (sys_path == NULL) {
+-		if (sysctl(mib, 2, 0, &len, 0, 0) != -1 &&
++		len = confstr(_CS_PATH, NULL, 0);
++		if (len > 0 &&
+ 		    (sys_path = ckmalloc(len + 5)) != NULL &&
+-		    sysctl(mib, 2, sys_path + 5, &len, 0, 0) != -1) {
++		    confstr(_CS_PATH, sys_path + 5, len) != len) {
+ 			memcpy(sys_path, "PATH=", 5);
+ 		} else {
+ 			ckfree(sys_path);
+@@ -1472,8 +1471,7 @@
+ 			argptr = argv + 1;
+ 			optptr = NULL;
+ 			/* and getopt */
+-			optreset = 1;
+-			optind = 1;
++			optind = 0;
+ 			builtin_flags = flags;
+ 			clr_err(out1);	/* discard previous I/O errors */
+ 			exitstatus = cmdentry.u.bltin(argc, argv);
+--- src.orig/sh/histedit.c
++++ src.netbsd/sh/histedit.c
+@@ -337,7 +337,7 @@
+ }
+ 
+ void
+-sethistappend(char *s, int flags __diagused)
++sethistappend(char *s, int flags __unused)
+ {
+ 	CTRACE(DBG_HISTORY, ("Set HISTAPPEND=%s [%x] %s ",
+ 	    (s == NULL ? "''" : s), flags, "!hist" + (hist != NULL)));
+@@ -399,7 +399,7 @@
+  * The callback functions for the FILE* returned by funopen2()
+  */
+ static ssize_t
+-Hist_Write(void *cookie, const void *buf, size_t len)
++Hist_Write(void *cookie, const char *buf, size_t len)
+ {
+ 	if (cookie != (void *)&History_fd) {
+ 		errno = EINVAL;
+@@ -424,15 +424,15 @@
+ 	return -1;
+ }
+ 
+-static off_t
+-Hist_Seek(void *cookie, off_t pos, int whence)
++static int
++Hist_Seek(void *cookie, off64_t *pos, int whence)
+ {
+ 	if (cookie != (void *)&History_fd) {
+ 		errno = EINVAL;
+ 		return -1;
+ 	}
+ 
+-	return lseek(History_fd, pos, whence);
++	return lseek(History_fd, (off_t)*pos, whence);
+ }
+ 
+ /*
+@@ -494,11 +494,16 @@
+ 	History_fd = n;
+ 	register_sh_fd(n, History_FD_Renumbered);
+ 
+-	if ((fd =
+-	    funopen2(&History_fd, NULL, Hist_Write, Hist_Seek, NULL,
+-		     Hist_Close)) == NULL) {
++	cookie_io_functions_t funcs = {
++		.read = NULL,
++		.write = Hist_Write,
++		.seek = Hist_Seek,
++		.close = Hist_Close
++	};
++
++	if ((fd = fopencookie(&History_fd, "w", funcs)) == NULL) {
+ 
+-		VTRACE(DBG_HISTORY, ("; funopen2 failed[%d]\n", errno));
++		VTRACE(DBG_HISTORY, ("; fopencookie failed[%d]\n", errno));
+ 
+ 		sh_close(n);
+ 		History_fd = -1;
+@@ -633,7 +638,7 @@
+ 	if (argc == 1)
+ 		error("missing history argument");
+ 
+-	optreset = 1; optind = 1; /* initialize getopt */
++	optind = 0; /* initialize getopt */
+ 	while (not_fcnumber(argv[optind]) &&
+ 	      (ch = getopt(argc, argv, ":e:lnrsz")) != -1)
+ 		switch ((char)ch) {
+@@ -981,12 +986,14 @@
+ 				continue;
+ 			if (++i >= size - 1) {
+ 				size *= 2;
+-				if (reallocarr(&matches, size,
++				void *new;
++				if (reallocarray(matches, size,
+ 				    sizeof(*matches)))
+ 				{
+ 					closedir(dir);
+ 					goto out;
+ 				}
++				matches = new;
+ 			}
+ 			matches[i] = strdup(entry->d_name);
+ 		}
+--- src.orig/sh/jobs.c
++++ src.netbsd/sh/jobs.c
+@@ -50,11 +50,9 @@
+ #include <paths.h>
+ #include <sys/types.h>
+ #include <sys/param.h>
+-#ifdef BSD
+ #include <sys/wait.h>
+ #include <sys/time.h>
+ #include <sys/resource.h>
+-#endif
+ #include <sys/ioctl.h>
+ 
+ #include "shell.h"
+@@ -564,6 +562,7 @@
+ 			break;
+ 		}
+ 
++#if 0
+ 	if (mode == SHOW_PROCTITLE) {
+ 		if (*argptr && **argptr)
+ 			setproctitle("%s", *argptr);
+@@ -571,7 +570,7 @@
+ 			setproctitle(NULL);
+ 		return 0;
+ 	}
+-
++#endif
+ 	if (!iflag && !posix)
+ 		mode |= SHOW_NO_FREE;
+ 
+--- src.orig/sh/main.c
++++ src.netbsd/sh/main.c
+@@ -53,6 +53,7 @@
+ #include <unistd.h>
+ #include <stdbool.h>
+ #include <stdlib.h>
++#include <dirent.h>
+ #include <locale.h>
+ #include <fcntl.h>
+ 
+@@ -94,6 +95,7 @@
+ #endif
+ 
+ STATIC void read_profile(const char *);
++static int get_max_fd(void) ;
+ 
+ /*
+  * Main routine.  We initialize things, parse the arguments, execute
+@@ -134,7 +136,7 @@
+ 
+ 	waspriv = privileged = (uid != geteuid()) || (gid != getegid());
+ 
+-	max_user_fd = fcntl(0, F_MAXFD);
++	max_user_fd = get_max_fd();
+ 	if (max_user_fd < 2)
+ 		max_user_fd = 2;
+ 	user_fd_limit = sysconf(_SC_OPEN_MAX);
+@@ -443,3 +445,29 @@
+ 		exitshell_savedstatus();
+ 	/* NOTREACHED */
+ }
++
++static int
++get_max_fd(void)
++{
++	DIR *dir = opendir("/proc/self/fd");
++	if (!dir) {
++		return -1;
++	}
++
++	int dir_fd = dirfd(dir);
++	int max_fd = -1;
++	struct dirent *entry;
++
++	while ((entry = readdir(dir)) != NULL) {
++		if (entry->d_name[0] == '.')
++			continue;
++
++		int fd = atoi(entry->d_name);
++		if (fd != dir_fd && fd > max_fd) {
++			max_fd = fd;
++		}
++	}
++
++	closedir(dir);
++	return max_fd;
++}
+--- src.orig/sh/miscbltin.c
++++ src.netbsd/sh/miscbltin.c
+@@ -59,6 +59,7 @@
+ #include <termios.h>
+ #endif
+ #include <unistd.h>
++#include <stddef.h>
+ 
+ #include "shell.h"
+ #include "syntax.h"
+@@ -110,10 +111,10 @@
+ 			n.c_oflag = t->c_oflag;
+ 			n.c_lflag |= ECHO | ISIG;
+ 		}
+-		if (tcsetattr(fd, TCSADRAIN | TCSASOFT, &n) == 0)
++		if (tcsetattr(fd, TCSADRAIN, &n) == 0)
+ 			return 1;
+ 	} else
+-		(void)tcsetattr(fd, TCSADRAIN | TCSASOFT, t);
++		(void)tcsetattr(fd, TCSADRAIN, t);
+ 	return 0;
+ }
+ 
+--- src.orig/sh/mkinit.sh
++++ src.netbsd/sh/mkinit.sh
+@@ -28,6 +28,11 @@
+ # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ # POSSIBILITY OF SUCH DAMAGE.
+ 
++outfile="init.c"
++if [ "$1" = "-o" ]; then
++	outfile="$2"
++	shift 2
++fi
+ srcs="$*"
+ 
+ # use of echo in this script is broken
+@@ -165,7 +170,7 @@
+ 	done
+ done
+ 
+-exec >init.c.tmp
++exec >${outfile}.tmp
+ 
+ echo "/*"
+ echo " * This file was generated by the mkinit program."
+@@ -221,4 +226,4 @@
+ echo "}"
+ 
+ exec >&-
+-mv init.c.tmp init.c
++mv ${outfile}.tmp ${outfile}
+--- src.orig/sh/mktokens
++++ src.netbsd/sh/mktokens
+@@ -43,6 +43,8 @@
+ # Note that all the keyword tokens come after TWORD, and all the others
+ # come before it.   We rely upon that relationship - keep it!
+ 
++output="$1/token.h"
++
+ cat > /tmp/ka$$ <<\!
+ TEOF	1	end of file
+ TNL	0	newline
+@@ -75,7 +77,7 @@
+ TNOT	0	"!"
+ !
+ nl=`wc -l /tmp/ka$$`
+-exec > token.h
++exec > $output
+ ${AWK} '{print "#define " $1 " " NR-1}' /tmp/ka$$
+ echo '
+ /* Array indicating which tokens mark the end of a list */
+--- src.orig/sh/output.h
++++ src.netbsd/sh/output.h
+@@ -36,6 +36,7 @@
+ 
+ #ifndef OUTPUT_INCL
+ 
++#include <sys/cdefs.h>
+ #include <stdarg.h>
+ 
+ struct output {
+--- src.orig/sh/redir.c
++++ src.netbsd/sh/redir.c
+@@ -87,7 +87,7 @@
+ #define CLOEXEC(fd)	(fcntl((fd), F_SETFD,				\
+ 			     (fcntl_int)(fcntl((fd), F_GETFD) | FD_CLOEXEC)))
+ #else
+-#define CLOEXEC(fd)	__nothing
++#define CLOEXEC(fd)
+ #endif
+ 
+ /* yes, this is correct, bizarre parens and all -- used only as a cast */
+@@ -1104,7 +1104,7 @@
+ 	int verbose = 0, ch, pos = 0, neg = 0;
+ 	char *setflags = NULL;
+ 
+-	optreset = 1; optind = 1; /* initialize getopt */
++	optind = 0; /* initialize getopt */
+ 	while ((ch = getopt(argc, argv, ":vs:"
+ #ifdef DEBUG
+ 					     "V"
+--- src.orig/sh/var.c
++++ src.netbsd/sh/var.c
+@@ -1495,6 +1495,75 @@
+ 	return buf.b;
+ }
+ 
++#ifdef __linux__
++typedef char *timezone_t;
++
++static timezone_t
++tzalloc(const char *zone)
++{
++        return zone ? strdup(zone) : NULL;
++}
++
++static void
++tzfree(timezone_t tz)
++{
++        free(tz);
++}
++
++static struct tm *
++localtime_rz(timezone_t tz, const time_t * restrict clock, struct tm * restrict result)
++{
++        char *old_tz = getenv("TZ");
++        char *saved_tz = old_tz ? strdup(old_tz) : NULL;
++        struct tm *ret;
++
++        if (tz != NULL)
++                setenv("TZ", tz, 1);
++        else
++                unsetenv("TZ");
++        tzset();
++
++        ret = localtime_r(clock, result);
++
++        if (saved_tz != NULL) {
++                setenv("TZ", saved_tz, 1);
++                free(saved_tz);
++        } else {
++                unsetenv("TZ");
++        }
++        tzset();
++
++        return ret;
++}
++
++static size_t
++strftime_z(timezone_t tz, char * restrict s, size_t maxsize,
++    const char * restrict format, const struct tm * restrict timeptr)
++{
++        char *old_tz = getenv("TZ");
++        char *saved_tz = old_tz ? strdup(old_tz) : NULL;
++        size_t ret;
++
++        if (tz != NULL)
++                setenv("TZ", tz, 1);
++        else
++                unsetenv("TZ");
++        tzset();
++
++        ret = strftime(s, maxsize, format, timeptr);
++
++        if (saved_tz != NULL) {
++                setenv("TZ", saved_tz, 1);
++                free(saved_tz);
++        } else {
++                unsetenv("TZ");
++        }
++        tzset();
++
++        return ret;
++}
++#endif /* __linux__ */
++
+ char *
+ get_tod(struct var *vp)
+ {
+--- src.orig/sh/var.h
++++ src.netbsd/sh/var.h
+@@ -34,6 +34,8 @@
+  *	@(#)var.h	8.2 (Berkeley) 5/4/95
+  */
+ 
++#include <inttypes.h>
++
+ #ifndef	VUNSET		/* double include protection */
+ /*
+  * Shell variables.
 --- src.orig/util/fts.c
 +++ src.netbsd/util/fts.c
 @@ -55,10 +55,6 @@

@@ -95,7 +95,7 @@ static int	long_double;
 
 #ifdef SHELL		/* sh (aka ash) builtin */
 #define main printfcmd
-#include "../../bin/sh/bltin/bltin.h"
+#include "bltin/bltin.h"
 #endif /* SHELL */
 
 #define PF(f, func) { \

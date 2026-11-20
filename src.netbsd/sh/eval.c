@@ -55,7 +55,6 @@ __RCSID("$NetBSD: eval.c,v 1.197.2.1 2026/06/03 18:21:41 martin Exp $");
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <sys/sysctl.h>
 
 /*
  * Evaluate a command.
@@ -817,14 +816,14 @@ const char *
 syspath(void)
 {
 	static char *sys_path = NULL;
-	static int mib[] = {CTL_USER, USER_CS_PATH};
 	static char def_path[] = "PATH=/usr/bin:/bin:/usr/sbin:/sbin";
 	size_t len;
 
 	if (sys_path == NULL) {
-		if (sysctl(mib, 2, 0, &len, 0, 0) != -1 &&
+		len = confstr(_CS_PATH, NULL, 0);
+		if (len > 0 &&
 		    (sys_path = ckmalloc(len + 5)) != NULL &&
-		    sysctl(mib, 2, sys_path + 5, &len, 0, 0) != -1) {
+		    confstr(_CS_PATH, sys_path + 5, len) != len) {
 			memcpy(sys_path, "PATH=", 5);
 		} else {
 			ckfree(sys_path);
@@ -1472,8 +1471,7 @@ evalcommand(union node *cmd, int flgs, struct backcmd *backcmd)
 			argptr = argv + 1;
 			optptr = NULL;
 			/* and getopt */
-			optreset = 1;
-			optind = 1;
+			optind = 0;
 			builtin_flags = flags;
 			clr_err(out1);	/* discard previous I/O errors */
 			exitstatus = cmdentry.u.bltin(argc, argv);

@@ -41,6 +41,10 @@ char *getbsize(int *, long *);
 void *reallocf(void *ptr, size_t size);
 #endif
 
+#ifndef HAVE_STRTONUM
+long long strtonum(const char *, long long, long long, const char **);
+#endif
+
 #ifndef HAVE_STRTOQ
 #define strtoq strtoll
 #endif

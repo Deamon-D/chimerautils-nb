@@ -120,7 +120,7 @@ parse_signal(const char *str)
 		str += 3;
 
 		for (i = 1; i < sys_nsig; i++) {
-			if (strcasecmp(str, signum_to_signame(i)) == 0)
+			if (strcasecmp(str, signalname(i)) == 0)
 				return (i);
 		}
 

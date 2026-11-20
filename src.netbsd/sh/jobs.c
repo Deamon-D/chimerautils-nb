@@ -50,11 +50,9 @@ __RCSID("$NetBSD: jobs.c,v 1.124.2.1 2026/06/03 18:21:41 martin Exp $");
 #include <paths.h>
 #include <sys/types.h>
 #include <sys/param.h>
-#ifdef BSD
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/resource.h>
-#endif
 #include <sys/ioctl.h>
 
 #include "shell.h"
@@ -564,6 +562,7 @@ jobscmd(int argc, char **argv)
 			break;
 		}
 
+#if 0
 	if (mode == SHOW_PROCTITLE) {
 		if (*argptr && **argptr)
 			setproctitle("%s", *argptr);
@@ -571,7 +570,7 @@ jobscmd(int argc, char **argv)
 			setproctitle(NULL);
 		return 0;
 	}
-
+#endif
 	if (!iflag && !posix)
 		mode |= SHOW_NO_FREE;
 

@@ -36,6 +36,7 @@
 
 #ifndef OUTPUT_INCL
 
+#include <sys/cdefs.h>
 #include <stdarg.h>
 
 struct output {

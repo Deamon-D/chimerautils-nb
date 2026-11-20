@@ -32,7 +32,7 @@ cd ${TMPDIR}
 if [ -z "$SRCTAR" ]; then
     SRCTAR="src.tgz"
     curl -L --retry 3 --ftp-pasv -o "$SRCTAR" "$SRC" || fail_exit
-    echo "SHA512 ($SRCTAR) = $SHA512" | cksum -a sha512 -q -c || fail_exit
+    echo "SHA512 ($SRCTAR) = $SHA512" | cksum -a sha512 -c || fail_exit
 fi
 tar -xf "$SRCTAR"
 
@@ -246,6 +246,7 @@ cp -p usr/src/lib/libc/gen/vis.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/unvis.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/pwcache.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libutil/strpct.c ${CWD}/src.orig/compat
+cp -p usr/src/lib/libc/stdlib/strtonum.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/pwcache.h ${CWD}/src.orig/include
 cp -p usr/src/include/vis.h ${CWD}/src.orig/include
 
@@ -300,6 +301,10 @@ cp -p usr/src/usr.bin/mail/head.c ${CWD}/src.netbsd/coreutils/fmt
 # This header is required for some programs
 cp -p usr/src/include/tzfile.h ${CWD}/src.orig/include
 cp -p usr/src/include/tzfile.h ${CWD}/src.netbsd/include
+
+# sh uses this internal header
+cp -p usr/src/lib/libedit/filecomplete.h ${CWD}/src.orig/include
+cp -p usr/src/lib/libedit/filecomplete.h ${CWD}/src.netbsd/include
 
 # These are not used
 rm -rf ${CWD}/src.orig/coreutils/sort/nls

@@ -125,7 +125,7 @@ static int rtsig_to_signum(const char *sig)
 }
 #endif
 
-int signame_to_signum(const char *sig)
+int signalnumber(const char *sig)
 {
 	size_t n;
 
@@ -144,7 +144,7 @@ int signame_to_signum(const char *sig)
 	return -1;
 }
 
-const char *signum_to_signame(int signum)
+const char *signalname(int signum)
 {
 	size_t n;
 
@@ -168,6 +168,19 @@ int get_signame_by_idx(size_t idx, const char **signame, int *signum)
 		*signum = ul_signames[idx].val;
 	return 0;
 
+}
+
+int signalnext(int signum)
+{
+	int newsig = signum + 1;
+
+	if (signum == ARRAY_SIZE(ul_signames) - 1)
+		return 0;
+
+	if (signalname(newsig) != NULL)
+		return newsig;
+
+	return -1;
 }
 
 const int sys_nsig = ARRAY_SIZE(ul_signames);

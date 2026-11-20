@@ -110,8 +110,8 @@ endif
 # libacl is needed in several tools
 libacl = dependency('libacl', required: true)
 
-# bc(1) needs libedit
-#libedit = dependency('libedit', required: get_option('libedit'))
+# sh(1) needs libedit
+libedit = dependency('libedit', required: get_option('libedit'))
 
 # dc(1), install(1), sort(1), fetch(1) need libcrypto
 libcrypto = dependency('libcrypto', required: get_option('openssl'))

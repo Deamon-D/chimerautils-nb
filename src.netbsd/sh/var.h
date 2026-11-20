@@ -34,6 +34,8 @@
  *	@(#)var.h	8.2 (Berkeley) 5/4/95
  */
 
+#include <inttypes.h>
+
 #ifndef	VUNSET		/* double include protection */
 /*
  * Shell variables.

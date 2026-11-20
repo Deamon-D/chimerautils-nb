@@ -50,8 +50,11 @@
 #define __printflike(x, y) __attribute__((format(printf, x, y)))
 #define __arraycount(a) (sizeof(a) / sizeof(a[0]))
 
+#define __UNVOLATILE(x)	x
 #define __UNCONST(a)	((void *)(unsigned long)(const void *)(a))
 #define __unused __attribute__((unused))
 #define __unreachable() __builtin_unreachable()
 
+#define __predict_false(x)	(x)
+#define __predict_true(x)	(x)
 #endif

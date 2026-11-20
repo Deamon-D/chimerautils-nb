@@ -53,6 +53,7 @@ __RCSID("$NetBSD: main.c,v 1.90 2023/04/07 10:34:13 kre Exp $");
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include <locale.h>
 #include <fcntl.h>
 
@@ -94,6 +95,7 @@ extern int etext();
 #endif
 
 STATIC void read_profile(const char *);
+static int get_max_fd(void) ;
 
 /*
  * Main routine.  We initialize things, parse the arguments, execute
@@ -134,7 +136,7 @@ main(int argc, char **argv)
 
 	waspriv = privileged = (uid != geteuid()) || (gid != getegid());
 
-	max_user_fd = fcntl(0, F_MAXFD);
+	max_user_fd = get_max_fd();
 	if (max_user_fd < 2)
 		max_user_fd = 2;
 	user_fd_limit = sysconf(_SC_OPEN_MAX);
@@ -442,4 +444,30 @@ exitcmd(int argc, char **argv)
 	else
 		exitshell_savedstatus();
 	/* NOTREACHED */
+}
+
+static int
+get_max_fd(void)
+{
+	DIR *dir = opendir("/proc/self/fd");
+	if (!dir) {
+		return -1;
+	}
+
+	int dir_fd = dirfd(dir);
+	int max_fd = -1;
+	struct dirent *entry;
+
+	while ((entry = readdir(dir)) != NULL) {
+		if (entry->d_name[0] == '.')
+			continue;
+
+		int fd = atoi(entry->d_name);
+		if (fd != dir_fd && fd > max_fd) {
+			max_fd = fd;
+		}
+	}
+
+	closedir(dir);
+	return max_fd;
 }

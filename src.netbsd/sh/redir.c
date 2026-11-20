@@ -87,7 +87,7 @@ __RCSID("$NetBSD: redir.c,v 1.76 2024/11/11 22:57:42 kre Exp $");
 #define CLOEXEC(fd)	(fcntl((fd), F_SETFD,				\
 			     (fcntl_int)(fcntl((fd), F_GETFD) | FD_CLOEXEC)))
 #else
-#define CLOEXEC(fd)	__nothing
+#define CLOEXEC(fd)
 #endif
 
 /* yes, this is correct, bizarre parens and all -- used only as a cast */
@@ -1104,7 +1104,7 @@ fdflagscmd(int argc, char *argv[])
 	int verbose = 0, ch, pos = 0, neg = 0;
 	char *setflags = NULL;
 
-	optreset = 1; optind = 1; /* initialize getopt */
+	optind = 0; /* initialize getopt */
 	while ((ch = getopt(argc, argv, ":vs:"
 #ifdef DEBUG
 					     "V"

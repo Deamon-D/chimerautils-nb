@@ -1495,6 +1495,75 @@ get_hostname(struct var *vp)
 	return buf.b;
 }
 
+#ifdef __linux__
+typedef char *timezone_t;
+
+static timezone_t
+tzalloc(const char *zone)
+{
+        return zone ? strdup(zone) : NULL;
+}
+
+static void
+tzfree(timezone_t tz)
+{
+        free(tz);
+}
+
+static struct tm *
+localtime_rz(timezone_t tz, const time_t * restrict clock, struct tm * restrict result)
+{
+        char *old_tz = getenv("TZ");
+        char *saved_tz = old_tz ? strdup(old_tz) : NULL;
+        struct tm *ret;
+
+        if (tz != NULL)
+                setenv("TZ", tz, 1);
+        else
+                unsetenv("TZ");
+        tzset();
+
+        ret = localtime_r(clock, result);
+
+        if (saved_tz != NULL) {
+                setenv("TZ", saved_tz, 1);
+                free(saved_tz);
+        } else {
+                unsetenv("TZ");
+        }
+        tzset();
+
+        return ret;
+}
+
+static size_t
+strftime_z(timezone_t tz, char * restrict s, size_t maxsize,
+    const char * restrict format, const struct tm * restrict timeptr)
+{
+        char *old_tz = getenv("TZ");
+        char *saved_tz = old_tz ? strdup(old_tz) : NULL;
+        size_t ret;
+
+        if (tz != NULL)
+                setenv("TZ", tz, 1);
+        else
+                unsetenv("TZ");
+        tzset();
+
+        ret = strftime(s, maxsize, format, timeptr);
+
+        if (saved_tz != NULL) {
+                setenv("TZ", saved_tz, 1);
+                free(saved_tz);
+        } else {
+                unsetenv("TZ");
+        }
+        tzset();
+
+        return ret;
+}
+#endif /* __linux__ */
+
 char *
 get_tod(struct var *vp)
 {

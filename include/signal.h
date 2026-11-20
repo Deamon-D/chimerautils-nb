@@ -34,8 +34,8 @@
 #define SIGINFO SIGUSR1
 #endif
 
-int signame_to_signum(const char *sig);
-const char *signum_to_signame(int signum);
-int get_signame_by_idx(size_t idx, const char **signame, int *signum);
+int signalnumber(const char *sig);
+const char *signalname(int signum);
+int signalnext(int signum);
 
 #endif

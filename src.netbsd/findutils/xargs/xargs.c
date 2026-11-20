@@ -601,7 +601,7 @@ waitchildren(const char *name, int waitall)
 		} else if (WIFSIGNALED (status)) {
 			if (WTERMSIG(status) < NSIG) {
 				warnx("%s terminated by SIG%s", name,
-				    signum_to_signame(WTERMSIG(status)));
+				    signalname(WTERMSIG(status)));
 			} else {
 				warnx("%s terminated by signal %d", name,
 				    WTERMSIG(status));

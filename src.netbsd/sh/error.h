@@ -117,6 +117,7 @@ void sh_exit(int) __dead;
  * so we use sigsetjmp instead, and explicitly do not save it.
  * sh does a lot of setjmp() calls (fewer longjmp though).
  */
-
+#ifndef __linux__
 #define setjmp(jmploc)		sigsetjmp((jmploc), 0)
 #define longjmp(jmploc, val)	siglongjmp((jmploc), (val))
+#endif

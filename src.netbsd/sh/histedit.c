@@ -337,7 +337,7 @@ sethistfile(char *hs, int flags)
 }
 
 void
-sethistappend(char *s, int flags __diagused)
+sethistappend(char *s, int flags __unused)
 {
 	CTRACE(DBG_HISTORY, ("Set HISTAPPEND=%s [%x] %s ",
 	    (s == NULL ? "''" : s), flags, "!hist" + (hist != NULL)));
@@ -399,7 +399,7 @@ History_FD_Renumbered(int from, int to)
  * The callback functions for the FILE* returned by funopen2()
  */
 static ssize_t
-Hist_Write(void *cookie, const void *buf, size_t len)
+Hist_Write(void *cookie, const char *buf, size_t len)
 {
 	if (cookie != (void *)&History_fd) {
 		errno = EINVAL;
@@ -424,15 +424,15 @@ Hist_Close(void *cookie)
 	return -1;
 }
 
-static off_t
-Hist_Seek(void *cookie, off_t pos, int whence)
+static int
+Hist_Seek(void *cookie, off64_t *pos, int whence)
 {
 	if (cookie != (void *)&History_fd) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	return lseek(History_fd, pos, whence);
+	return lseek(History_fd, (off_t)*pos, whence);
 }
 
 /*
@@ -494,11 +494,16 @@ Hist_File_Open(const char *name)
 	History_fd = n;
 	register_sh_fd(n, History_FD_Renumbered);
 
-	if ((fd =
-	    funopen2(&History_fd, NULL, Hist_Write, Hist_Seek, NULL,
-		     Hist_Close)) == NULL) {
+	cookie_io_functions_t funcs = {
+		.read = NULL,
+		.write = Hist_Write,
+		.seek = Hist_Seek,
+		.close = Hist_Close
+	};
 
-		VTRACE(DBG_HISTORY, ("; funopen2 failed[%d]\n", errno));
+	if ((fd = fopencookie(&History_fd, "w", funcs)) == NULL) {
+
+		VTRACE(DBG_HISTORY, ("; fopencookie failed[%d]\n", errno));
 
 		sh_close(n);
 		History_fd = -1;
@@ -633,7 +638,7 @@ histcmd(volatile int argc, char ** volatile argv)
 	if (argc == 1)
 		error("missing history argument");
 
-	optreset = 1; optind = 1; /* initialize getopt */
+	optind = 0; /* initialize getopt */
 	while (not_fcnumber(argv[optind]) &&
 	      (ch = getopt(argc, argv, ":e:lnrsz")) != -1)
 		switch ((char)ch) {
@@ -981,12 +986,14 @@ sh_matches(const char *text, int start, int end)
 				continue;
 			if (++i >= size - 1) {
 				size *= 2;
-				if (reallocarr(&matches, size,
+				void *new;
+				if (reallocarray(matches, size,
 				    sizeof(*matches)))
 				{
 					closedir(dir);
 					goto out;
 				}
+				matches = new;
 			}
 			matches[i] = strdup(entry->d_name);
 		}

@@ -59,6 +59,7 @@ __RCSID("$NetBSD: miscbltin.c,v 1.57 2025/07/03 03:54:40 kre Exp $");
 #include <termios.h>
 #endif
 #include <unistd.h>
+#include <stddef.h>
 
 #include "shell.h"
 #include "syntax.h"
@@ -110,10 +111,10 @@ setrawmode(int fd, int on, int end, struct termios *t)
 			n.c_oflag = t->c_oflag;
 			n.c_lflag |= ECHO | ISIG;
 		}
-		if (tcsetattr(fd, TCSADRAIN | TCSASOFT, &n) == 0)
+		if (tcsetattr(fd, TCSADRAIN, &n) == 0)
 			return 1;
 	} else
-		(void)tcsetattr(fd, TCSADRAIN | TCSASOFT, t);
+		(void)tcsetattr(fd, TCSADRAIN, t);
 	return 0;
 }
 

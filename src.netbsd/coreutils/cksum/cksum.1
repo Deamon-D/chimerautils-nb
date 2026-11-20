@@ -37,10 +37,7 @@
 .Os
 .Sh NAME
 .Nm cksum ,
-.Nm md2 ,
-.Nm md4 ,
 .Nm md5 ,
-.Nm rmd160 ,
 .Nm sha1 ,
 .Nm sha256 ,
 .Nm sha384 ,
@@ -58,19 +55,7 @@
 .Op Fl a Ar algorithm Oo Fl pqtx Oc Oo Fl s Ar string Oc
 .Op Fl o Ar 1 Ns | Ns Ar 2
 .Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
-.Nm md2
-.Op Fl npqtx
-.Op Fl s Ar string
-.Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
-.Nm md4
-.Op Fl npqtx
-.Op Fl s Ar string
-.Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
 .Nm md5
-.Op Fl npqtx
-.Op Fl s Ar string
-.Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
-.Nm rmd160
 .Op Fl npqtx
 .Op Fl s Ar string
 .Op Ar Li \&| Fl c Oo Fl w Oc Oo Ar sumfile Oc
@@ -110,15 +95,13 @@ described below.
 It is provided for compatibility only.
 .Pp
 The
-.Nm md2 ,
 .Nm md4 ,
 .Nm md5 ,
 .Nm sha1 ,
 .Nm sha256 ,
 .Nm sha384 ,
-.Nm sha512 ,
 and
-.Nm rmd160
+.Nm sha512 
 utilities compute cryptographic hash functions, and write to standard
 output the hexadecimal representation of the hash of their input.
 .Pp
@@ -133,10 +116,7 @@ Valid algorithms are:
 .Bl -column -offset indent ".Sy Algorithm" ".Sy Bits" ".Sy Description"
 .It Sy Algorithm Ta Sy Bits Ta Sy Description
 .It Li CRC Ta 32 Ta Default CRC algorithm
-.It Li MD2 Ta 128 Ta MD2, per Li RFC1319
-.It Li MD4 Ta 128 Ta MD4, per Li RFC1320
 .It Li MD5 Ta 128 Ta MD5, per Li RFC1321
-.It Li RMD160 Ta 160 Ta RIPEMD-160
 .It Li SHA1 Ta 160 Ta SHA-1, per Li FIPS PUB 180-1
 .It Li SHA256 Ta 256 Ta SHA-2
 .It Li SHA384 Ta 384 Ta SHA-2
@@ -291,16 +271,6 @@ article.
 .%A Dilip V. Sarwate
 .%J "Communications of the ACM"
 .%D "August 1988"
-.Re
-.Rs
-.%A R. Rivest
-.%T The MD2 Message-Digest Algorithm
-.%O RFC 1319
-.Re
-.Rs
-.%A R. Rivest
-.%T The MD4 Message-Digest Algorithm
-.%O RFC 1186 and RFC 1320
 .Re
 .Rs
 .%A R. Rivest

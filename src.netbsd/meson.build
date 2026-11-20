@@ -46,6 +46,6 @@ endif
 # tool collections
 
 subdir('coreutils')
-#subdir('diffutils')
+subdir('diffutils')
 #subdir('findutils')
 subdir('miscutils')

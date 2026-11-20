@@ -7,7 +7,7 @@ confd.set_quoted('LIBEXECDIR', join_paths(get_option('prefix'), get_option('libe
 
 confd.set('HAVE_STRLCPY', cc.has_function('strlcpy'))
 confd.set('HAVE_STRLCAT', cc.has_function('strlcat'))
-confd.set('HAVE_STRTONUM', cc.has_function('strtonum'))
+confd.set('HAVE_STRTOI', cc.has_function('strtoi'))
 confd.set('HAVE_ERRC', cc.has_function('errc'))
 confd.set('HAVE_WARNC', cc.has_function('warnc'))
 confd.set('HAVE_FTS_OPEN', cc.has_function('fts_open'))

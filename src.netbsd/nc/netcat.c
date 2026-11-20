@@ -65,14 +65,14 @@ __RCSID("$NetBSD: netcat.c,v 1.7 2023/06/20 08:51:24 rin Exp $");
 #include "atomicio.h"
 
 #ifndef IPTOS_DSCP_CS0
-#define	IPTOS_DSCP_CS0		0x00
-#define	IPTOS_DSCP_CS1		0x20
-#define	IPTOS_DSCP_CS2		0x40
-#define	IPTOS_DSCP_CS3		0x60
-#define	IPTOS_DSCP_CS4		0x80
-#define	IPTOS_DSCP_CS5		0xa0
-#define	IPTOS_DSCP_CS6		0xc0
-#define	IPTOS_DSCP_CS7		0xe0
+#define	IPTOS_DSCP_CS0          0x00
+#define	IPTOS_DSCP_CS1          0x20
+#define	IPTOS_DSCP_CS2          0x40
+#define	IPTOS_DSCP_CS3          0x60
+#define	IPTOS_DSCP_CS4          0x80
+#define	IPTOS_DSCP_CS5          0xa0
+#define	IPTOS_DSCP_CS6          0xc0
+#define	IPTOS_DSCP_CS7          0xe0
 #endif /* IPTOS_DSCP_CS0 */
 
 #ifdef __NetBSD__
@@ -174,7 +174,7 @@ main(int argc, char *argv[])
 	socklen_t len;
 	struct sockaddr_storage cliaddr;
 	char *proxy = NULL, *proxyport = NULL;
-	const char *errstr = NULL;
+	int errnum;
 	struct addrinfo proxyhints;
 	char unix_dg_tmp_socket_buf[UNIX_DG_TMP_SOCKET_SIZE];
 #ifdef CRYPTO
@@ -243,9 +243,9 @@ main(int argc, char *argv[])
 			help();
 			break;
 		case 'i':
-			iflag = strtonum(optarg, 0, UINT_MAX, &errstr);
-			if (errstr != NULL)
-				errx(1, "bad interval `%s'", optarg);
+			iflag = strtoi(optarg, NULL, 0, 0, UINT_MAX, &errnum);
+			if (errnum)
+				errc(1, errnum, "bad interval `%s'", optarg);
 			break;
 #ifdef CRYPTO
 		case 'K':
@@ -259,14 +259,14 @@ main(int argc, char *argv[])
 			lflag = 1;
 			break;
 		case 'M':
-			ttl = strtonum(optarg, 0, 255, &errstr);
-			if (errstr != NULL)
-				errx(1, "bad ttl `%s'", optarg);
+			ttl = strtoi(optarg, NULL, 0, 0, 255, &errnum);
+			if (errnum)
+				errc(1, errnum, "bad ttl `%s'", optarg);
 			break;
 		case 'm':
-			minttl = strtonum(optarg, 0, 255, &errstr);
-			if (errstr != NULL)
-				errx(1, "bad minttl `%s'", optarg);
+			minttl = strtoi(optarg, NULL, 0, 0, 255, &errnum);
+			if (errnum)
+				errc(1, errnum, "bad minttl `%s'", optarg);
 			break;
 		case 'N':
 			Nflag = 1;
@@ -300,18 +300,18 @@ main(int argc, char *argv[])
 			break;
 #ifdef __OpenBSD__
 		case 'V':
-			rtableid = (int)strtonum(optarg, 0, 255, &errstr);
-			if (errstr != NULL)
-				errx(1, "bad rtable `%s'", optarg);
+			rtableid = (int)strtoi(optarg, NULL, 0, 0, 255, &errnum);
+			if (errnum)
+				errc(1, errnum, "bad rtable `%s'", optarg);
 			break;
 #endif
 		case 'v':
 			vflag = 1;
 			break;
 		case 'w':
-			timeout = strtonum(optarg, 0, INT_MAX / 1000, &errstr);
-			if (errstr != NULL)
-				errx(1, "bad timeout `%s'", optarg);
+			timeout = strtoi(optarg, NULL, 0, 0, INT_MAX / 1000, &errnum);
+			if (errnum)
+				errc(1, errnum, "bad timeout `%s'", optarg);
 			timeout *= 1000;
 			break;
 		case 'x':
@@ -326,15 +326,15 @@ main(int argc, char *argv[])
 			Dflag = 1;
 			break;
 		case 'I':
-			Iflag = strtonum(optarg, 1, 65536 << 14, &errstr);
-			if (errstr != NULL)
-				errx(1, "bad TCP receive window `%s'",
+			Iflag = strtoi(optarg, NULL, 0, 1, 65536 << 14, &errnum);
+			if (errnum)
+				errc(1, errnum, "bad TCP receive window `%s'",
 				    optarg);
 			break;
 		case 'O':
-			Oflag = strtonum(optarg, 1, 65536 << 14, &errstr);
-			if (errstr != NULL)
-				errx(1, "bad TCP send window `%s'",
+			Oflag = strtoi(optarg, NULL, 0, 1, 65536 << 14, &errnum);
+			if (errnum)
+				errc(1, errnum, "bad TCP send window `%s'",
 				    optarg);
 			break;
 #ifdef CRYPTO
@@ -351,9 +351,9 @@ main(int argc, char *argv[])
 				break;
 			if (map_tls(optarg, &TLSopt))
 				break;
-			Tflag = (int)strtonum(optarg, 0, 255, &errnum);
-			if (errstr != NULL)
-				errx(1, "illegal tos/tls value `%s'",
+			Tflag = (int)strtoi(optarg, NULL, 0, 0, 255, &errnum);
+			if (errnum)
+				errc(1, errnum, "illegal tos/tls value `%s'",
 				    optarg);
 			break;
 #endif
@@ -1410,14 +1410,14 @@ static int
 strtoport(const char *portstr, int udp)
 {
 	struct servent *entry;
-	const char *errstr = NULL;
+	int errnum;
 	const char *proto;
 	int port;
 
 	proto = udp ? "udp" : "tcp";
 
-	port = strtonum(portstr, 1, PORT_MAX, &errstr);
-	if (errstr == NULL)
+	port = strtoi(portstr, NULL, 0, 1, PORT_MAX, &errnum);
+	if (errnum == 0)
 		return port;
 	if ((entry = getservbyname(portstr, proto)) == NULL)
 		errx(1, "service \"%s\" unknown", portstr);

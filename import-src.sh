@@ -352,15 +352,11 @@ for sc in ${CWD}/src.netbsd/findutils/locate/locate/*.sh; do
     mv "$sc" "$sc.in"
 done
 
-# awk manpage
-#cp -p usr/src/usr.bin/awk/awk.1 ${CWD}/src.orig/awk
-#cp -p usr/src/usr.bin/awk/awk.1 ${CWD}/src.netbsd/awk
-
 # meh
 rm -rf ${CWD}/src.orig/awk/testdir
 rm -rf ${CWD}/src.netbsd/awk/testdir
-rm -rf ${CWD}/src.orig/miscutils/calendar/calendars/CVS
-rm -rf ${CWD}/src.netbsd/miscutils/calendar/calendars/CVS
+rm -rf ${CWD}/src.orig/m4/lib/strtonum.c
+rm -rf ${CWD}/src.netbsd/m4/lib/strtonum.c
 
 #####################
 # APPLY ANY PATCHES #

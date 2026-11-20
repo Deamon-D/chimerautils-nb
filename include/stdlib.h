@@ -30,15 +30,12 @@
 
 #include_next <stdlib.h>
 #include <stdint.h>
+#include <inttypes.h>
 #include "config-compat.h"
 
 int mergesort(void *, size_t, size_t, int (*)(const void *, const void *));
 int heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
 char *getbsize(int *, long *);
-
-#ifndef HAVE_STRTONUM
-long long strtonum(const char *nptr, long long minv, long long maxv, const char **errstr);
-#endif
 
 #ifndef HAVE_REALLOCF
 void *reallocf(void *ptr, size_t size);

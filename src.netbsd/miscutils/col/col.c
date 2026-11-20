@@ -139,7 +139,7 @@ main(int argc, char **argv)
 	int this_line;			/* line l points to */
 	int nflushd_lines;		/* number of lines that were flushed */
 	int adjust, opt, warned, width;
-	const char *errstr = NULL;
+	int e;
 
 	(void)setlocale(LC_CTYPE, "");
 
@@ -157,11 +157,11 @@ main(int argc, char **argv)
 			compress_spaces = 1;
 			break;
 		case 'l':		/* buffered line count */
-			max_bufd_lines = strtonum(optarg, 1,
-			    (INT_MAX - BUFFER_MARGIN) / 2, &errstr) * 2;
-			if (errstr != NULL)
-				errx(1, "bad -l argument, %s: %s", errstr, 
-					optarg);
+			max_bufd_lines = (int)strtoi(optarg, NULL, 0, 1,
+			    (INT_MAX - BUFFER_MARGIN) / 2, &e) * 2;
+			if (e)
+				errc(EXIT_FAILURE, e, "bad -l argument `%s'",
+				    optarg);
 			break;
 		case 'p':		/* pass unknown control sequences */
 			pass_unknown_seqs = 1;

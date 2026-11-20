@@ -13,7 +13,7 @@ libcompat_sources = [
     '../../src.compat/err.c',
     '../../src.compat/strlfuncs.c',
     '../../src.compat/signames.c',
-    '../../src.compat/strtonum.c',
+    '../../src.compat/strtoi.c',
 ]
 
 libcompat = static_library(

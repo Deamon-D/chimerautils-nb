@@ -41,13 +41,13 @@ uses NetBSD as base instead of FreeBSD.
 
 ## bsdutils
 
-Chimerautils also is a fork of [bsdutils](https://codeberg.org/dcantrell/bsdutils)
+Chimerautils itself is a fork of [bsdutils](https://codeberg.org/dcantrell/bsdutils)
 by David Cantrell. Chimerautils were created in order to provide a more
 complete package that prioritizes Chimera's needs and development pace.
 
 ## Building
 
-Chimerautils requires a Linux system with a Clang or GCC compiler.
+Chimerautils-nb requires a Linux system with a Clang or GCC compiler.
 
 You will also need the following:
 

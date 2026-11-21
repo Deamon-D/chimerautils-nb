@@ -53,8 +53,7 @@ int
 main(int argc, char *argv[])
 {
 	int c, all = 0;
-	int processors = 0;
-	unsigned int ignore = 0;
+	int processors, ignore = 0;
 	while ((c = getopt_long(argc, argv, "", gnuopts, NULL)) != -1) {
 		switch (c) {
 		case 'a':
@@ -62,7 +61,7 @@ main(int argc, char *argv[])
 			break;
 		case 'i':
 			int e;
-			ignore = (int)strtoi(optarg, NULL, 0, 0, UINT_MAX, &e);
+			ignore = (int)strtoi(optarg, NULL, 0, 0, INT_MAX, &e);
 			if (e)
 				errx(EXIT_FAILURE, "invalid number: '%s'", optarg);
 			break;

@@ -632,7 +632,19 @@
  #ifndef SMALL
  	if (pflag && preserve_fd_acls(from_fd, to_fd) != 0)
  		rval = 1;
-@@ -387,7 +387,7 @@
+@@ -363,10 +363,9 @@
+ int
+ setfile(struct stat *fs, int fd)
+ {
+-	int rval, islink;
++	int rval;
+ 
+ 	rval = 0;
+-	islink = S_ISLNK(fs->st_mode);
+ 	fs->st_mode &= S_ISUID | S_ISGID | S_IRWXU | S_IRWXG | S_IRWXO;
+ 
+ 	/*
+@@ -387,7 +386,7 @@
  		warn("chmod: %s", to.p_path);
  		rval = 1;
  	}
@@ -641,7 +653,7 @@
  	if (!islink && !Nflag) {
  		unsigned long fflags = fs->st_flags;
  		/*
-@@ -406,6 +406,7 @@
+@@ -406,6 +405,7 @@
  				rval = 1;
  			}
  	}
@@ -2848,7 +2860,15 @@
  #include <sha1.h>
  #include <sha2.h>
  
-@@ -137,7 +136,6 @@
+@@ -128,7 +127,6 @@
+ static char	*group, *owner, *fflags, *tags;
+ static FILE	*metafp;
+ static char	*metafile;
+-static u_long	fileflags;
+ static char	*stripArgs;
+ static char	*afterinstallcmd;
+ static const char *suffix = BACKUP_SUFFIX;
+@@ -137,7 +135,6 @@
  static enum {
  	DIGEST_NONE = 0,
  	DIGEST_MD5,
@@ -2856,7 +2876,7 @@
  	DIGEST_SHA1,
  	DIGEST_SHA256,
  	DIGEST_SHA384,
-@@ -338,8 +336,6 @@
+@@ -338,8 +335,6 @@
  			digesttype = DIGEST_NONE;
  		} else if (strcmp(digest, "md5") == 0) {
  			digesttype = DIGEST_MD5;
@@ -2865,7 +2885,7 @@
  		} else if (strcmp(digest, "sha1") == 0) {
  			digesttype = DIGEST_SHA1;
  		} else if (strcmp(digest, "sha256") == 0) {
-@@ -574,9 +570,6 @@
+@@ -574,9 +569,6 @@
  				case DIGEST_MD5:
  					dres = MD5File(from_name, NULL);
  					break;
@@ -2875,7 +2895,7 @@
  				case DIGEST_SHA1:
  					dres = SHA1File(from_name, NULL);
  					break;
-@@ -872,7 +865,6 @@
+@@ -872,7 +864,6 @@
  	u_char	*p;
  	u_char	buf[MAXBSIZE];
  	MD5_CTX		ctxMD5;
@@ -2883,7 +2903,7 @@
  	SHA1_CTX	ctxSHA1;
  	SHA256_CTX	ctxSHA256;
  	SHA384_CTX	ctxSHA384;
-@@ -882,9 +874,6 @@
+@@ -882,9 +873,6 @@
  	case DIGEST_MD5:
  		MD5Init(&ctxMD5);
  		break;
@@ -2893,7 +2913,7 @@
  	case DIGEST_SHA1:
  		SHA1Init(&ctxSHA1);
  		break;
-@@ -938,9 +927,6 @@
+@@ -938,9 +926,6 @@
  			case DIGEST_MD5:
  				MD5Update(&ctxMD5, p, size);
  				break;
@@ -2903,7 +2923,7 @@
  			case DIGEST_SHA1:
  				SHA1Update(&ctxSHA1, p, size);
  				break;
-@@ -972,9 +958,6 @@
+@@ -972,9 +957,6 @@
  				case DIGEST_MD5:
  					MD5Update(&ctxMD5, buf, nr);
  					break;
@@ -2913,7 +2933,7 @@
  				case DIGEST_SHA1:
  					SHA1Update(&ctxSHA1, buf, nr);
  					break;
-@@ -1002,8 +985,6 @@
+@@ -1002,8 +984,6 @@
  	switch (digesttype) {
  	case DIGEST_MD5:
  		return MD5End(&ctxMD5, NULL);
@@ -4210,9 +4230,10 @@
  			if (++i >= size - 1) {
  				size *= 2;
 -				if (reallocarr(&matches, size,
-+				void *new;
-+				if (reallocarray(matches, size,
- 				    sizeof(*matches)))
+-				    sizeof(*matches)))
++				void *new = reallocarray(matches, size,
++				    sizeof(*matches));
++				if (new == NULL)
  				{
  					closedir(dir);
  					goto out;

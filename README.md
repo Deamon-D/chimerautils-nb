@@ -25,6 +25,7 @@ It also provides the following functionality:
 * gencat
 * jot
 * nc
+* sh
 * vis
 * unvis
 * compress

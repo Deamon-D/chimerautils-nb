@@ -127,7 +127,6 @@ static gid_t	gid = (gid_t)-1;
 static char	*group, *owner, *fflags, *tags;
 static FILE	*metafp;
 static char	*metafile;
-static u_long	fileflags;
 static char	*stripArgs;
 static char	*afterinstallcmd;
 static const char *suffix = BACKUP_SUFFIX;

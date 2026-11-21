@@ -986,9 +986,9 @@ sh_matches(const char *text, int start, int end)
 				continue;
 			if (++i >= size - 1) {
 				size *= 2;
-				void *new;
-				if (reallocarray(matches, size,
-				    sizeof(*matches)))
+				void *new = reallocarray(matches, size,
+				    sizeof(*matches));
+				if (new == NULL)
 				{
 					closedir(dir);
 					goto out;

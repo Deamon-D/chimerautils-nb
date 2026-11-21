@@ -30,6 +30,10 @@ if cc.has_argument('-Wclobbered')
     add_global_arguments(['-Wno-clobbered'], language: ['c', 'cpp'])
 endif
 
+if cc.has_argument('-Wsign-compare')
+    add_global_arguments(['-Wno-sign-compare'], language: ['c', 'cpp'])
+endif
+
 # Find lex
 lex_prog = find_program('flex', 'lex', required: true)
 lex = generator(

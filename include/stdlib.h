@@ -45,14 +45,12 @@ long long strtonum(const char *, long long, long long, const char **);
 #define strtoq strtoll
 #endif
 
-#ifndef getprogname
 static inline void setprogname(const char *name __attribute__((unused))) { }
-static inline const char *getprogname_impl(void) {
+
+static inline const char *getprogname(void) {
     extern char *__progname;
     return __progname;
 }
-#define getprogname getprogname_impl
-#endif
 
 /* Values for humanize_number(3)'s flags parameter. */
 #define HN_DECIMAL              0x01

@@ -1,4 +1,5 @@
 #include <inttypes.h>
+#include <stddef.h>
 #include <errno.h>
 
 #include "config-compat.h"
@@ -10,9 +11,13 @@ strtoi(const char *nptr, char **endptr, int base, intmax_t lo, intmax_t hi, int 
 	intmax_t in, ret = 0;
 	int status = 0;
 	int serrno;
+	char *ep;
 
 	serrno = errno;
 	errno = 0;
+
+	if (endptr == NULL)
+		endptr = &ep;
 
 	in = strtoimax(nptr, endptr, base);
 

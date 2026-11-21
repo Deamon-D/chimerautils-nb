@@ -38,4 +38,7 @@ int signalnumber(const char *sig);
 const char *signalname(int signum);
 int signalnext(int signum);
 
+extern const int sys_nsig;
+extern const char *sys_signame[];
+
 #endif

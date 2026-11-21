@@ -13,7 +13,7 @@ libcompat_sources = [
     '../../src.compat/heapsort.c',
     '../../src.compat/err.c',
     '../../src.compat/strlfuncs.c',
-    '../../src.compat/signames.c',
+    '../../src.compat/signals.c',
     '../../src.compat/strtoi.c',
 ]
 

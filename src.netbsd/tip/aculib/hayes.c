@@ -121,14 +121,17 @@ hay_dialer(char *num, char *acu __unused)
 void
 hay_disconnect(void)
 {
-
+	int flags = 0;
 	/* first hang up the modem*/
 #ifdef DEBUG
 	(void)printf("\rdisconnecting modem....\n\r");
 #endif
-	(void)ioctl(FD, TIOCCDTR, 0);
-	(void)sleep(1);
-	(void)ioctl(FD, TIOCSDTR, 0);
+	ioctl(FD, TIOCMGET, &flags);
+	flags &= ~TIOCM_DTR;
+	ioctl(FD, TIOCMSET, &flags);
+	sleep(1);
+	flags |= TIOCM_DTR;
+	ioctl(FD, TIOCMSET, &flags);
 	goodbye();
 }
 
@@ -230,7 +233,7 @@ error_rep(char c)
 void
 goodbye(void)
 {
-	int len;
+	int len, flags = 0;
 	char c;
 
 	(void)tcflush(FD, TCIOFLUSH);
@@ -265,8 +268,11 @@ goodbye(void)
 		(void)printf("read (%d): %s\r\n", rlen, dumbuf);
 #endif
 	}
+
 	(void)tcflush(FD, TCIOFLUSH);
-	(void)ioctl(FD, TIOCCDTR, 0);		/* clear DTR (insurance) */
+	ioctl(FD, TIOCMGET, &flags);
+	flags &= ~TIOCM_DTR;			/* clear DTR (insurance) */
+	ioctl(FD, TIOCMSET, &flags);
 	(void)close(FD);
 }
 
@@ -275,7 +281,7 @@ goodbye(void)
 int
 hay_sync(void)
 {
-	int len, retry = 0;
+	int len, retry = 0, flags= 0;
 
 	while (retry++ <= MAXRETRY) {
 		(void)write(FD, "AT\r", 3);
@@ -291,9 +297,13 @@ hay_sync(void)
 			(void)printf("hay_sync: (\"%s\") %d\n\r", dumbuf, retry);
 #endif
 		}
-		(void)ioctl(FD, TIOCCDTR, 0);
-		(void)ioctl(FD, TIOCSDTR, 0);
+		ioctl(FD, TIOCMGET, &flags);
+		flags &= ~TIOCM_DTR;
+		ioctl(FD, TIOCMSET, &flags);
+		flags |= TIOCM_DTR;
+		ioctl(FD, TIOCMSET, &flags);
 	}
+
 	(void)printf("Cannot synchronize with hayes...\n\r");
 	return(0);
 }

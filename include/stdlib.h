@@ -33,10 +33,6 @@
 #include <inttypes.h>
 #include "config-compat.h"
 
-int mergesort(void *, size_t, size_t, int (*)(const void *, const void *));
-int heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
-char *getbsize(int *, long *);
-
 #ifndef HAVE_REALLOCF
 void *reallocf(void *ptr, size_t size);
 #endif
@@ -69,7 +65,19 @@ static inline const char *getprogname_impl(void) {
 #define HN_GETSCALE             0x10
 #define HN_AUTOSCALE            0x20
 
-/* functions from libutil in FreeBSD */
-int humanize_number(char *, size_t, int64_t, const char *, int, int);
+int	humanize_number(char *, size_t, int64_t, const char *, int, int);
+char	*cgetcap(char *, const char *, int);
+int	 cgetclose(void);
+int	 cgetent(char **, const char * const *, const char *);
+int	 cgetmatch(const char *, const char *);
+int	 cgetnum(char *, const char *, long *);
+int	 cgetset(const char *);
+int	 cgetstr(char *, const char *, char **);
+int	 cgetustr(char *, const char *, char **);
+void	 csetexpandtc(int);
+int	mergesort(void *, size_t, size_t, int (*)(const void *, const void *));
+int	heapsort(void *, size_t, size_t, int (*)(const void *, const void *));
+char	*getbsize(int *, long *);
+
 
 #endif

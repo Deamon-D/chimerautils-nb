@@ -22,6 +22,7 @@ It replaces the following GNU projects:
 It also provides the following functionality:
 
 * apply
+* tip/cu
 * gencat
 * jot
 * nc

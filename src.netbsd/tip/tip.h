@@ -40,7 +40,8 @@
 #include <sys/ioctl.h>
 #include <sys/time.h>
 #include <sys/wait.h>
-#include <machine/endian.h>
+#include <sys/endian.h>
+#include <sys/file.h>
 
 #include <err.h>
 #include <fcntl.h>

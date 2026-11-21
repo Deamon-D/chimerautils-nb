@@ -4500,6 +4500,136 @@
  #ifndef	VUNSET		/* double include protection */
  /*
   * Shell variables.
+--- src.orig/tip/aculib/hayes.c
++++ src.netbsd/tip/aculib/hayes.c
+@@ -121,14 +121,17 @@
+ void
+ hay_disconnect(void)
+ {
+-
++	int flags = 0;
+ 	/* first hang up the modem*/
+ #ifdef DEBUG
+ 	(void)printf("\rdisconnecting modem....\n\r");
+ #endif
+-	(void)ioctl(FD, TIOCCDTR, 0);
+-	(void)sleep(1);
+-	(void)ioctl(FD, TIOCSDTR, 0);
++	ioctl(FD, TIOCMGET, &flags);
++	flags &= ~TIOCM_DTR;
++	ioctl(FD, TIOCMSET, &flags);
++	sleep(1);
++	flags |= TIOCM_DTR;
++	ioctl(FD, TIOCMSET, &flags);
+ 	goodbye();
+ }
+ 
+@@ -230,7 +233,7 @@
+ void
+ goodbye(void)
+ {
+-	int len;
++	int len, flags = 0;
+ 	char c;
+ 
+ 	(void)tcflush(FD, TCIOFLUSH);
+@@ -265,8 +268,11 @@
+ 		(void)printf("read (%d): %s\r\n", rlen, dumbuf);
+ #endif
+ 	}
++
+ 	(void)tcflush(FD, TCIOFLUSH);
+-	(void)ioctl(FD, TIOCCDTR, 0);		/* clear DTR (insurance) */
++	ioctl(FD, TIOCMGET, &flags);
++	flags &= ~TIOCM_DTR;			/* clear DTR (insurance) */
++	ioctl(FD, TIOCMSET, &flags);
+ 	(void)close(FD);
+ }
+ 
+@@ -275,7 +281,7 @@
+ int
+ hay_sync(void)
+ {
+-	int len, retry = 0;
++	int len, retry = 0, flags= 0;
+ 
+ 	while (retry++ <= MAXRETRY) {
+ 		(void)write(FD, "AT\r", 3);
+@@ -291,9 +297,13 @@
+ 			(void)printf("hay_sync: (\"%s\") %d\n\r", dumbuf, retry);
+ #endif
+ 		}
+-		(void)ioctl(FD, TIOCCDTR, 0);
+-		(void)ioctl(FD, TIOCSDTR, 0);
++		ioctl(FD, TIOCMGET, &flags);
++		flags &= ~TIOCM_DTR;
++		ioctl(FD, TIOCMSET, &flags);
++		flags |= TIOCM_DTR;
++		ioctl(FD, TIOCMSET, &flags);
+ 	}
++
+ 	(void)printf("Cannot synchronize with hayes...\n\r");
+ 	return(0);
+ }
+--- src.orig/tip/getcap.c
++++ src.netbsd/tip/getcap.c
+@@ -740,6 +740,7 @@
+ 	}
+ }
+ 
++#if 0
+ int
+ cgetfirst(char **buf, const char * const *db_array)
+ {
+@@ -750,6 +751,7 @@
+ 	(void)cgetclose();
+ 	return cgetnext(buf, db_array);
+ }
++#endif
+ 
+ static FILE *pfp;
+ static int slash;
+@@ -774,6 +776,7 @@
+  * upon returning an entry with more remaining, and -1 if an error occurs.
+  */
+ /* coverity[+alloc : arg-*0] */
++#if 0
+ int
+ cgetnext(char **bp, const char * const *db_array)
+ {
+@@ -900,7 +903,7 @@
+ 	}
+ 	/* NOTREACHED */
+ }
+-
++#endif
+ /*
+  * Cgetstr retrieves the value of the string capability cap from the
+  * capability record pointed to by buf.  A pointer to a decoded, NUL
+--- src.orig/tip/tip.c
++++ src.netbsd/tip/tip.c
+@@ -276,8 +276,7 @@
+ 	term.c_cc[VTIME] = 0;
+ 	defchars = term;
+ 	term.c_cc[VINTR] = term.c_cc[VQUIT] = term.c_cc[VSUSP] =
+-		term.c_cc[VDSUSP] = term.c_cc[VDISCARD] =
+-	 	term.c_cc[VLNEXT] = _POSIX_VDISABLE;
++		term.c_cc[VDISCARD] = term.c_cc[VLNEXT] = _POSIX_VDISABLE;
+ 	raw();
+ 
+ 	(void)pipe(attndes);
+--- src.orig/tip/tip.h
++++ src.netbsd/tip/tip.h
+@@ -40,7 +40,8 @@
+ #include <sys/ioctl.h>
+ #include <sys/time.h>
+ #include <sys/wait.h>
+-#include <machine/endian.h>
++#include <sys/endian.h>
++#include <sys/file.h>
+ 
+ #include <err.h>
+ #include <fcntl.h>
 --- src.orig/util/fts.c
 +++ src.netbsd/util/fts.c
 @@ -55,10 +55,6 @@

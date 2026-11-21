@@ -331,16 +331,6 @@ cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.orig/tip
 cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.netbsd/tip
 rm -f ${CWD}/src.netbsd/tip/getcap.h
 
-# remote(5)
-#cp -p usr/src/share/man/man5/remote.5 ${CWD}/src.orig/tip
-#cp -p usr/src/share/man/man5/remote.5 ${CWD}/src.netbsd/tip
-
-# remove leftover makefiles from tip
-rm -f ${CWD}/src.orig/tip/Makefile*
-rm -f ${CWD}/src.orig/tip/tip/Makefile*
-rm -f ${CWD}/src.netbsd/tip/Makefile*
-rm -f ${CWD}/src.netbsd/tip/tip/Makefile*
-
 # temove telnetd
 rm -rf ${CWD}/src.orig/telnet/telnetd
 rm -rf ${CWD}/src.netbsd/telnet/telnetd

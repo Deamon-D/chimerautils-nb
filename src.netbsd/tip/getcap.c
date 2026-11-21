@@ -740,6 +740,7 @@ cgetmatch(const char *buf, const char *name)
 	}
 }
 
+#if 0
 int
 cgetfirst(char **buf, const char * const *db_array)
 {
@@ -750,6 +751,7 @@ cgetfirst(char **buf, const char * const *db_array)
 	(void)cgetclose();
 	return cgetnext(buf, db_array);
 }
+#endif
 
 static FILE *pfp;
 static int slash;
@@ -774,6 +776,7 @@ cgetclose(void)
  * upon returning an entry with more remaining, and -1 if an error occurs.
  */
 /* coverity[+alloc : arg-*0] */
+#if 0
 int
 cgetnext(char **bp, const char * const *db_array)
 {
@@ -900,7 +903,7 @@ cgetnext(char **bp, const char * const *db_array)
 	}
 	/* NOTREACHED */
 }
-
+#endif
 /*
  * Cgetstr retrieves the value of the string capability cap from the
  * capability record pointed to by buf.  A pointer to a decoded, NUL

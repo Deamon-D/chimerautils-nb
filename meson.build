@@ -26,9 +26,8 @@ cpp = meson.get_compiler('cpp')
 # Avoid warnings about unused parameter in some programs
 add_global_arguments(['-Wno-unused-parameter'], language: ['c', 'cpp'])
 
-# Avoid a pointless warning in some programs
-if cc.has_argument('-Wstring-plus-int')
-    add_global_arguments(['-Wno-string-plus-int'], language: ['c'])
+if cc.has_argument('-Wclobbered')
+    add_global_arguments(['-Wno-clobbered'], language: ['c', 'cpp'])
 endif
 
 # Find lex

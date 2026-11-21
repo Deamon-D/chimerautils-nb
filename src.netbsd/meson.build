@@ -25,7 +25,7 @@ subdir('nc')
 subdir('patch')
 subdir('sed')
 subdir('sh')
-#subdir('tip')
+subdir('tip')
 subdir('unvis')
 subdir('vis')
 

@@ -276,8 +276,7 @@ cucommon:
 	term.c_cc[VTIME] = 0;
 	defchars = term;
 	term.c_cc[VINTR] = term.c_cc[VQUIT] = term.c_cc[VSUSP] =
-		term.c_cc[VDSUSP] = term.c_cc[VDISCARD] =
-	 	term.c_cc[VLNEXT] = _POSIX_VDISABLE;
+		term.c_cc[VDISCARD] = term.c_cc[VLNEXT] = _POSIX_VDISABLE;
 	raw();
 
 	(void)pipe(attndes);

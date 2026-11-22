@@ -229,7 +229,7 @@ copy_cmd usr.bin/su
 copy_cmd usr.bin/tip
 copy_cmd usr.bin/vis
 copy_cmd usr.bin/unvis
-copy_cmd usr.bin/nc
+copy_cmd usr.bin/nc "" netcat
 #copy_cmd contrib/nvi
 copy_cmd external/historical/nawk/dist "" awk
 #copy_cmd contrib/telnet

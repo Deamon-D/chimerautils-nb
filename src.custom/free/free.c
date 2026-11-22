@@ -36,25 +36,55 @@
 
 #include "config.h"
 
-#define HELP_OPT	1000
-#define VERSION_OPT	1001
+/*
+ * a reimplementation of the free command from procps-ng.
+ * I won't implement: --si, --lohi, --line, --committed,
+ * --seconds, --count and --wide
+*/
 
 extern char *__progname;
 
+#define HUMAN_FLAG	0x01
+
 static const struct option gnuopts[] = {
 	{ "bytes", no_argument, 0, 'b'},
+	{ "kilobytes", no_argument, 0, 'K'},
+	{ "megabytes", no_argument, 0, 'M'},
+	{ "gigabytes", no_argument, 0, 'G'},
+	{ "terabytes", no_argument, 0, 'T'},
+	{ "petabytes", no_argument, 0, 'P'},
 	{ "kibibytes", no_argument, 0, 'k'},
 	{ "mebibytes", no_argument, 0, 'm'},
 	{ "gibibytes", no_argument, 0, 'g'},
 	{ "tebibytes", no_argument, 0, 't'},
 	{ "pebibytes", no_argument, 0, 'p'},
-	{ "help", no_argument, 0, HELP_OPT},
-	{ "version", no_argument, 0, VERSION_OPT},
+	{ "human-readable", no_argument, 0, 'h'},
+	{ "help", no_argument, 0, 'H'},
+	{ "version", no_argument, 0, 'V'},
 	{ 0, 0, 0, 0}
 };
 
-int human = 0;
-uint64_t shift = 10;	/* kibibytes is the default */
+static enum avai_units {
+	BYTES = 1UL,
+	/* powers of 1024 */
+	KIBIBYTES = BYTES * 1024UL,
+	MEBIBYTES = KIBIBYTES * 1024UL,
+	GIBIBYTES = MEBIBYTES * 1024UL,
+	TEBIBYTES = GIBIBYTES * 1024UL,
+	PEBIBYTES = TEBIBYTES * 1024UL,
+
+	/* powers of 1000 */
+	KILOBYTES = BYTES * 1000UL,
+	MEGABYTES = KILOBYTES * 1000UL,
+	GIGABYTES = MEGABYTES * 1000UL,
+	TERABYTES = GIGABYTES * 1000UL,
+	PETABYTES = TERABYTES * 1000UL,
+} unit = KIBIBYTES;	/* kibibytes is the default */
+
+uint64_t flags = 0;
+
+static const char *unit_name(void);
+enum avai_units best_unit(unsigned long);
 
 int
 main(int argc, char *argv[])
@@ -63,48 +93,68 @@ main(int argc, char *argv[])
 	FILE *fp;
 	char buf[128];
 	struct sysinfo info;
-#define C(x)	((x) * info.mem_unit >> shift)
 	unsigned long sreclaimable;
 	unsigned long cachedram, availableram;
 
-	while ((c = getopt_long(argc, argv, "bghkm", gnuopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bKMGTPkmgtphHV", gnuopts, NULL)) != -1) {
 		switch (c) {
 		case 'b':
-			shift = 0;
+			unit = BYTES;
 			break;
-		case 'g':
-			shift = 30;
+		case 'K':
+			unit = KILOBYTES;
 			break;
-		case 'h':
-			human = 1;
+		case 'M':
+			unit = MEGABYTES;
+			break;
+		case 'G':
+			unit = GIGABYTES;
+			break;
+		case 'T':
+			unit = TERABYTES;
+			break;
+		case 'P':
+			unit = PETABYTES;
 			break;
 		case 'k':
-			shift = 10;
+			unit = KIBIBYTES;
 			break;
 		case 'm':
-			shift = 20;
+			unit = MEBIBYTES;
+			break;
+		case 'g':
+			unit = GIBIBYTES;
 			break;
 		case 't':
-			shift = 40;
+			unit = TEBIBYTES;
 			break;
 		case 'p':
-			shift = 50;
+			unit = PEBIBYTES;
 			break;
-		case HELP_OPT:
+		case 'h':
+			flags |= HUMAN_FLAG;
+			break;
+		case 'H':
 			printf(	"Usage: %s [OPTION]...\n"
 				"Show memory and swap information.\n"
 				"\n"
 				"  -b, --bytes           show output in bytes\n"
+				"      --kilobytes       show output in kilobytes\n"
+				"      --megabytes       show output in megabytes\n"
+				"      --gigabytes       show output in gigabytes\n"
+				"      --terabytes       show output in terabytes\n"
+				"      --petabytes       show output in petabytes\n"
 				"  -k, --kibibytes       show output in kibibytes\n"
 				"  -m, --mebibytes       show output in mebibytes\n"
 				"  -g, --gibibytes       show output in gibibytes\n"
 				"      --tebibytes       show output in tebibytes\n"
 				"      --pebibytes       show output in pebibytes\n"
+				"  -h, --human-readable  show human readable output\n"
 				"      --help            display this help and exit\n"
-				"      --version         output version information and exit\n",
+				"  -V, --version         output version information and exit\n",
 				__progname);
 			return EXIT_SUCCESS;
-		case VERSION_OPT:
+		case 'V':
 			printf(	"%s (" PROJECT_NAME ") " PROJECT_VERSION "\n"
 				"Copyright (C) 2026 Deamon-D <daemondev00@gmail.com>\n"
 				"SPDX-License-Identifier: BSD-2-Clause\n",
@@ -121,6 +171,7 @@ main(int argc, char *argv[])
 	if (!(fp = fopen("/proc/meminfo", "r")))
 		err(1, "/proc/meminfo");
 
+	/* we need to get some values from /proc to match free output */
 	while (fgets(buf, sizeof(buf), fp)) {
 		if (!strncmp(buf, "MemAvailable:", 13)) {
 			sscanf(buf + 13, "%ld", &availableram);
@@ -136,14 +187,87 @@ main(int argc, char *argv[])
 
 	fclose(fp);
 
-	printf("%-10s %10s %10s %10s %10s %10s %10s\n",
-		"", "total", "used", "free", "shared", "buff/cache", "available");
+	/* create these arrays to print its values in a loop */
+	unsigned long ram[6] = {
+		info.totalram * info.mem_unit,
+		(info.totalram - availableram) * info.mem_unit,
+		info.freeram * info.mem_unit,
+		info.sharedram * info.mem_unit,
+		(info.bufferram + cachedram + sreclaimable) * info.mem_unit,
+		availableram * info.mem_unit
+	};
 
-	printf("%-10s %10lu %10lu %10lu %10lu %10lu %10lu\n",
-		"Mem:", C(info.totalram), C(info.totalram - availableram), C(info.freeram),
-		C(info.sharedram), C(info.bufferram + cachedram + sreclaimable), C(availableram));
+	unsigned long swap[3] = {
+		info.totalswap * info.mem_unit,
+		(info.totalswap - info.freeswap) * info.mem_unit, 
+		info.freeswap
+	};
 
-	printf("%-10s %10lu %10lu %10lu\n",
-		"Swap:", C(info.totalswap), C(info.totalswap - info.freeswap), C(info.freeswap));
+	printf("%-10s %10s %10s %10s %10s %10s %10s\n%-10s",
+		"", "total", "used", "free", "shared", "buff/cache", "available", "Mem:");
+
+	for (int i = 0; i < 6; i++) {
+		unit = best_unit(ram[i]);
+		if (flags & HUMAN_FLAG)
+			printf(" %8.1f%s", (double)ram[i] / unit, unit_name());
+		else 
+			printf(" %10lu%s", ram[i] / unit, unit_name());
+	}
+
+	printf("\n%-10s", "Swap:");
+	for (int i = 0; i < 3; i++) {
+		unit = best_unit(swap[i]);
+		if (flags & HUMAN_FLAG)
+			printf(" %8.1f%s", (double)swap[i] / unit, unit_name());
+		else 
+			printf(" %10lu%s", swap[i] / unit, unit_name());
+	}
+	putchar('\n');
 	return 0;
+}
+
+static const char *
+unit_name(void)
+{
+	/* output an empty string when --human has not been passed */
+	if ((flags & HUMAN_FLAG) == 0)
+		return "";
+
+	switch (unit) {
+	case BYTES: return "B";
+	case KILOBYTES: return "K";
+	case MEGABYTES: return "M";
+	case GIGABYTES: return "G";
+	case TERABYTES: return "T";
+	case PETABYTES: return "P";
+	case KIBIBYTES: return "Ki";
+	case MEBIBYTES: return "Mi";
+	case GIBIBYTES: return "Gi";
+	case TEBIBYTES: return "Ti";
+	case PEBIBYTES: return "Pi";
+	}
+
+	/* return 'UK' (unknown) to avoid compiler warnings */
+	return "UK";
+}
+
+enum avai_units
+best_unit(unsigned long value)
+{
+	/* use the current unit when --human has not been passed */
+	if ((flags & HUMAN_FLAG) == 0)
+			return unit;
+
+	if (value < KIBIBYTES)
+		return BYTES;
+	else if (value < MEBIBYTES)
+		return KIBIBYTES;
+	else if (value < GIBIBYTES)
+		return MEBIBYTES;
+	else if (value < TEBIBYTES)
+		return GIBIBYTES;
+	else if (value < PEBIBYTES)
+		return TEBIBYTES;
+
+	return PEBIBYTES;
 }

@@ -193,6 +193,11 @@ usr.bin/whereis
 usr.bin/write
 "
 
+# generic utilities
+CMDS_GEN="
+usr.bin/machine
+"
+
 for p in ${CMDS_CORE}; do
     copy_cmd "$p" coreutils
 done
@@ -211,6 +216,10 @@ done
 
 for p in ${CMDS_MISC}; do
     copy_cmd "$p" miscutils
+done
+
+for p in ${CMDS_GEN}; do
+    copy_cmd "$p" genutils
 done
 
 # equivalents of standalone projects

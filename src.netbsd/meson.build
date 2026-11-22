@@ -49,3 +49,6 @@ subdir('coreutils')
 subdir('diffutils')
 subdir('findutils')
 subdir('miscutils')
+
+# generic utilities
+subdir('genutils')

@@ -46,6 +46,10 @@ extern char *__progname;
 
 #define HUMAN_FLAG	0x01
 
+/* the sizes of the arrays below */
+#define RAM_SIZE 6
+#define SWAP_SIZE 3
+
 static const struct option gnuopts[] = {
 	{ "bytes", no_argument, 0, 'b'},
 	{ "kilobytes", no_argument, 0, 'K'},
@@ -188,7 +192,7 @@ main(int argc, char *argv[])
 	fclose(fp);
 
 	/* create these arrays to print its values in a loop */
-	unsigned long ram[6] = {
+	unsigned long ram[RAM_SIZE] = {
 		info.totalram * info.mem_unit,
 		(info.totalram - availableram) * info.mem_unit,
 		info.freeram * info.mem_unit,
@@ -197,30 +201,30 @@ main(int argc, char *argv[])
 		availableram * info.mem_unit
 	};
 
-	unsigned long swap[3] = {
+	unsigned long swap[SWAP_SIZE] = {
 		info.totalswap * info.mem_unit,
 		(info.totalswap - info.freeswap) * info.mem_unit, 
-		info.freeswap
+		info.freeswap * info.mem_unit;
 	};
 
 	printf("%-10s %10s %10s %10s %10s %10s %10s\n%-10s",
 		"", "total", "used", "free", "shared", "buff/cache", "available", "Mem:");
 
-	for (int i = 0; i < 6; i++) {
+	for (int i = 0; i < RAM_SIZE; i++) {
 		unit = best_unit(ram[i]);
 		if (flags & HUMAN_FLAG)
 			printf(" %8.1f%s", (double)ram[i] / unit, unit_name());
 		else 
-			printf(" %10lu%s", ram[i] / unit, unit_name());
+			printf(" %10lu", ram[i] / unit);
 	}
 
 	printf("\n%-10s", "Swap:");
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < SWAP_SIZE; i++) {
 		unit = best_unit(swap[i]);
 		if (flags & HUMAN_FLAG)
 			printf(" %8.1f%s", (double)swap[i] / unit, unit_name());
 		else 
-			printf(" %10lu%s", swap[i] / unit, unit_name());
+			printf(" %10lu", swap[i] / unit);
 	}
 	putchar('\n');
 	return 0;
@@ -229,10 +233,6 @@ main(int argc, char *argv[])
 static const char *
 unit_name(void)
 {
-	/* output an empty string when --human has not been passed */
-	if ((flags & HUMAN_FLAG) == 0)
-		return "";
-
 	switch (unit) {
 	case BYTES: return "B";
 	case KILOBYTES: return "K";

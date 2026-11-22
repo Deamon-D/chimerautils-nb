@@ -326,6 +326,14 @@ chmod 755 ${CWD}/src.orig/sh/mktokens
 chmod 755 ${CWD}/src.netbsd/sh/mkbuiltins
 chmod 755 ${CWD}/src.netbsd/sh/mktokens
 
+# remove sh files we don't want
+rm -rf ${CWD}/src.orig/sh/dot.*
+rm -rf ${CWD}/src.orig/sh/funcs
+rm -f ${CWD}/src.orig/sh/profile
+rm -rf ${CWD}/src.netbsd/sh/dot.*
+rm -rf ${CWD}/src.netbsd/sh/funcs
+rm -f ${CWD}/src.netbsd/sh/profile
+
 # tip cap parser
 cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.orig/tip
 cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.netbsd/tip

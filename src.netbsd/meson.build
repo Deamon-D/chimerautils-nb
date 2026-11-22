@@ -29,6 +29,7 @@ subdir('tip')
 subdir('unvis')
 subdir('vis')
 
+# not ported
 #if not get_option('pam').disabled() and pam.found()
 #    subdir('su')
 #endif
@@ -37,8 +38,8 @@ if not get_option('zlib').disabled() and zlib.found()
     subdir('gzip')
 endif
 
+# not ported
 #if ncurses.found()
-#    subdir('ee')
 #    subdir('nvi')
 #    subdir('telnet')
 #endif

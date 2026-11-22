@@ -1,1 +1,6 @@
+subdir('c11')
+subdir('c17')
+subdir('c89')
+subdir('c99')
+subdir('domainname')
 subdir('machine')

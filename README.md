@@ -11,6 +11,7 @@ It replaces the following GNU projects:
 
 * coreutils
 * findutils
+* diffutils
 * grep
 * sed
 * ed
@@ -32,6 +33,7 @@ It also provides the following functionality:
 * compress
 * uncompress
 * portions of util-linux
+* bsd specific tools
 * and additional custom tools
 
 In a way, `chimerautils-nb` is also an alternative to projects like Busybox.

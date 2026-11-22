@@ -204,7 +204,7 @@ main(int argc, char *argv[])
 	unsigned long swap[SWAP_SIZE] = {
 		info.totalswap * info.mem_unit,
 		(info.totalswap - info.freeswap) * info.mem_unit, 
-		info.freeswap * info.mem_unit;
+		info.freeswap * info.mem_unit
 	};
 
 	printf("%-10s %10s %10s %10s %10s %10s %10s\n%-10s",

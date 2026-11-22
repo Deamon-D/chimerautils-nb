@@ -3208,6 +3208,64 @@
  
  DB	*__bt_open(const char *, int, mode_t, const BTREEINFO *, int);
  DB	*__hash_open(const char *, int, mode_t, const HASHINFO *, int);
+--- src.orig/diffutils/diff/diff.c
++++ src.netbsd/diffutils/diff/diff.c
+@@ -426,14 +426,15 @@
+ read_excludes_file(char *file)
+ {
+ 	FILE *fp;
+-	char *buf, *pattern;
+-	size_t len;
++	char *pattern, *buf = NULL;
++	size_t bufsize = 0;
++	ssize_t len;
+ 
+ 	if (strcmp(file, "-") == 0)
+ 		fp = stdin;
+ 	else if ((fp = fopen(file, "r")) == NULL)
+ 		err(2, "%s", file);
+-	while ((buf = fgetln(fp, &len)) != NULL) {
++	while ((len = getline(&buf, &bufsize, fp)) != -1) {
+ 		if (buf[len - 1] == '\n')
+ 			len--;
+ 		if ((pattern = strndup(buf, len)) == NULL)
+@@ -442,6 +443,7 @@
+ 	}
+ 	if (strcmp(file, "-") != 0)
+ 		fclose(fp);
++	free(buf);
+ }
+ 
+ /*
+--- src.orig/diffutils/diff/diffreg.c
++++ src.netbsd/diffutils/diff/diffreg.c
+@@ -84,6 +84,7 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
++#include <time.h>
+ 
+ #include "pr.h"
+ #include "diff.h"
+--- src.orig/diffutils/diff/xmalloc.c
++++ src.netbsd/diffutils/diff/xmalloc.c
+@@ -50,9 +50,14 @@
+ void *
+ xreallocarray(void *ptr, size_t nmemb, size_t size)
+ {
+-	void *new_ptr = ptr;
++	void *new_ptr;
+ 
+-	if (reallocarr(&new_ptr, nmemb, size) != 0) {
++	if (nmemb == 0 || size == 0) {
++		free(ptr);
++		return NULL;
++	}
++
++	if ((new_ptr = reallocarray(ptr, nmemb, size)) == NULL) {
+ 		err(2, "xreallocarray: allocating %zu * %zu bytes",
+ 		    nmemb, size);
+ 	}
 --- src.orig/diffutils/sdiff/sdiff.c
 +++ src.netbsd/diffutils/sdiff/sdiff.c
 @@ -283,7 +283,7 @@

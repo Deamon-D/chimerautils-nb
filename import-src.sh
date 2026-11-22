@@ -148,13 +148,11 @@ usr.sbin/unlink
 games/factor
 "
 
-# diffutils
+# part of diffutils
 CMDS_DIFF="
 usr.bin/cmp
 usr.bin/sdiff
 "
-#usr.bin/diff
-#usr.bin/diff3
 
 
 # findutils
@@ -328,14 +326,6 @@ chmod 755 ${CWD}/src.orig/sh/mktokens
 chmod 755 ${CWD}/src.netbsd/sh/mkbuiltins
 chmod 755 ${CWD}/src.netbsd/sh/mktokens
 
-# remove sh files we don't want
-rm -rf ${CWD}/src.orig/sh/dot.*
-rm -rf ${CWD}/src.orig/sh/funcs
-rm -f ${CWD}/src.orig/sh/profile
-rm -rf ${CWD}/src.netbsd/sh/dot.*
-rm -rf ${CWD}/src.netbsd/sh/funcs
-rm -f ${CWD}/src.netbsd/sh/profile
-
 # tip cap parser
 cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.orig/tip
 cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.netbsd/tip
@@ -350,6 +340,24 @@ rm -rf ${CWD}/src.orig/awk/testdir
 rm -rf ${CWD}/src.netbsd/awk/testdir
 rm -rf ${CWD}/src.orig/m4/lib/strtonum.c
 rm -rf ${CWD}/src.netbsd/m4/lib/strtonum.c
+
+# remove source tree
+rm -rf usr/* "${SRCTAR}"
+
+#
+# We do this because diff and diff3 only are available
+# through the current branch
+#
+USR_BIN_TAR_CURRENT="https://cdn.netbsd.org/pub/NetBSD/NetBSD-current/tar_files/src/usr.bin.tar.gz"
+curl -L --retry 3 --ftp-pasv -o usr.bin.tar.gz "$USR_BIN_TAR_CURRENT" || fail_exit
+tar xf usr.bin.tar.gz
+
+# to use the copy_cmd function
+mv src usr/src
+
+for p in usr.bin/diff usr.bin/diff3; do
+	copy_cmd "$p" diffutils
+done
 
 #####################
 # APPLY ANY PATCHES #

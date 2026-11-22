@@ -1,1 +1,2 @@
 subdir('cmp')
+subdir('sdiff')

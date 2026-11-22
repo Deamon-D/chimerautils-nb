@@ -119,6 +119,7 @@ sh_prog = executable(
         '-DSHELL',
         '-DUSE_LRAND48',
         '-DREJECT_NULS',
+        '-Wno-unused-but-set-variable',
     ],
     include_directories : [ inc, cinc, 'bltin' ],
     link_with : [libcompat],

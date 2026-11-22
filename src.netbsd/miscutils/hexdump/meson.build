@@ -2,6 +2,7 @@ hexdump_prog = executable(
     'hexdump',
     [ 'conv.c', 'display.c', 'hexdump.c', 'hexsyntax.c', 'odsyntax.c', 'parse.c' ],
     include_directories : [ inc, ],
+    c_args : ['-Wno-stringop-truncation'],
     link_with : [ libcompat ],
     install : true,
 )

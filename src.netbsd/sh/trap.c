@@ -610,8 +610,13 @@ setsignal(int signo, int vforked)
 		if (!vforked)
 			*t = action;
 
-		if (action == S_CATCH)
-			(void)siginterrupt(signo, 1);
+		if (action == S_CATCH) {
+			struct sigaction sa;
+			if (sigaction(signo, NULL, &sa) != -1) {
+				sa.sa_flags &= ~SA_RESTART;
+				sigaction(signo, &sa, NULL);
+			}
+		}
 		/*
 		 * If our parent accidentally blocked signals for
 		 * us make sure we unblock them

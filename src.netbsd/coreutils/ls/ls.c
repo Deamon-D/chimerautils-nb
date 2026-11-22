@@ -504,7 +504,6 @@ display(FTSENT *p, FTSENT *list)
 	const char *user, *group;
 	char buf[21];		/* 64 bits == 20 digits, +1 for NUL */
 	char nuser[12], ngroup[12];
-	char *flags = NULL;
 
 	/*
 	 * If list is NULL there are two possibilities: that the parent

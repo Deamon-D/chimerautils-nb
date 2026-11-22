@@ -13,6 +13,7 @@ cksum_prog = executable(
      'sha512.c',
     ],
     dependencies : [libcrypto],
+    c_args : ['-Wno-unused-but-set-variable'],
     link_with : [libcompat],
     include_directories: [inc, cinc],
     install: true,

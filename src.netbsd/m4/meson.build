@@ -10,7 +10,7 @@ m4_prog = executable(
     ],
     include_directories: [inc, m4_inc],
     link_with: [libcompat, libohash],
-    c_args: ['-DEXTENDED'],
+    c_args: ['-DEXTENDED', '-Wno-unterminated-string-initialization'],
     install: true,
 )
 

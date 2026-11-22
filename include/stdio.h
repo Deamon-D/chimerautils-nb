@@ -1,7 +1,7 @@
 /*-
  * SPDX-License-Identifier: BSD-2-Clause
  *
- * Copyright (c) 2023 Daniel Kolesa
+ * Copyright (c) 2026 littlefly365
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -25,50 +25,17 @@
  * SUCH DAMAGE.
  */
 
-#ifndef SYS_CAPSICUM_H
-#define SYS_CAPSICUM_H
+#ifndef STDIO_H
+#define STDIO_H
 
-#define CAP_READ 0
-#define CAP_WRITE 1
-#define CAP_SEEK 2
-#define CAP_FSTAT 3
-#define CAP_FSYNC 4
-#define CAP_FCNTL 5
-#define CAP_FSTATFS 6
-#define CAP_FTRUNCATE 7
-#define CAP_IOCTL 8
-#define CAP_MMAP_R 9
-#define CAP_EVENT 10
-#define CAP_LOOKUP 11
-#define CAP_PWRITE 12
+#include_next <stdio.h>
 
-typedef struct cap_rights cap_rights_t;
+#define	FPARSELN_UNESCESC	0x01
+#define	FPARSELN_UNESCCONT	0x02
+#define	FPARSELN_UNESCCOMM	0x04
+#define	FPARSELN_UNESCREST	0x08
+#define	FPARSELN_UNESCALL	0x0f
 
-struct cap_rights {
-    int pad;
-};
-
-static inline cap_rights_t *cap_rights_init(cap_rights_t *rights, ...) {
-    return rights;
-}
-
-static inline int caph_rights_limit(int fd, const cap_rights_t *rights) {
-    (void)rights;
-    (void)fd;
-    return 0;
-}
-
-static inline cap_rights_t *cap_rights_set(cap_rights_t *rights, ...) {
-    return rights;
-}
-
-static inline cap_rights_t *cap_rights_clear(cap_rights_t *rights, ...) {
-    return rights;
-}
-
-static inline int cap_rights_is_set(cap_rights_t *rights, ...) {
-    (void)rights;
-    return 1;
-}
+char	*fparseln(FILE *, size_t *, size_t *, const char[3], int);
 
 #endif

@@ -1,4 +1,4 @@
-#subdir('calendar')
+subdir('calendar')
 subdir('col')
 subdir('colrm')
 subdir('column')

@@ -175,4 +175,40 @@ struct {								\
 		(head)->stqh_last = &(head)->stqh_first;			\
 } while (0)
 
+/*
+ * SIMPLEQ
+*/
+#define	SIMPLEQ_HEAD(name, type)					\
+struct name {								\
+	struct type *sqh_first;	/* first element */			\
+	struct type **sqh_last;	/* addr of last next element */		\
+}
+
+#define	SIMPLEQ_HEAD_INITIALIZER(head)					\
+	{ NULL, &(head).sqh_first }
+
+#define	SIMPLEQ_ENTRY(type)						\
+struct {								\
+	struct type *sqe_next;	/* next element */			\
+}
+
+#define	SIMPLEQ_FIRST(head)		((head)->sqh_first)
+#define	SIMPLEQ_END(head)		NULL
+#define	SIMPLEQ_EMPTY(head)		((head)->sqh_first == SIMPLEQ_END(head))
+
+#define	SIMPLEQ_FOREACH(var, head, field)				\
+	for ((var) = ((head)->sqh_first);				\
+	    (var) != SIMPLEQ_END(head);					\
+	    (var) = ((var)->field.sqe_next))
+
+#define	SIMPLEQ_INSERT_TAIL(head, elm, field) do {			\
+	(elm)->field.sqe_next = NULL;					\
+	*(head)->sqh_last = (elm);					\
+	(head)->sqh_last = &(elm)->field.sqe_next;			\
+} while (0)
+
+#define	SIMPLEQ_REMOVE_HEAD(head, field) do {				\
+	if (((head)->sqh_first = (head)->sqh_first->field.sqe_next) == NULL) \
+		(head)->sqh_last = &(head)->sqh_first;			\
+} while (0)
 #endif

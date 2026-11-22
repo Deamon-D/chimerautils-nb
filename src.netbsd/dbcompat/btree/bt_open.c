@@ -213,7 +213,8 @@ __bt_open(const char *fname, int flags, mode_t mode, const BTREEINFO *openinfo,
 		F_SET(t, B_INMEM);
 	}
 
-
+	if (fstat(t->bt_fd, &sb))
+		goto err;
 	if (sb.st_size) {
 		if ((nr = read(t->bt_fd, &m, sizeof(BTMETA))) < 0)
 			goto err;

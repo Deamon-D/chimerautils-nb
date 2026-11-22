@@ -662,7 +662,7 @@ format1(const struct statx *st,
 {
 	uint64_t data;
 	char *stmp, lfmt[24], tmp[20];
-	const char *sdata;
+	const char *sdata = NULL;
 	char smode[12], sid[13], path[PATH_MAX + 4], visbuf[PATH_MAX * 4 + 4];
 	struct passwd *pw;
 	struct group *gr;

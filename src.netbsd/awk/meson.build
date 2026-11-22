@@ -25,7 +25,7 @@ proctab_src = custom_target(
     capture: true
 )
 
-extra_cargs = []
+extra_cargs = ['-DHAS_ISBLANK', '-Wno-implicit-fallthrough', '-Wno-unused-but-set-variable']
 
 if cc.has_argument('-Wunused-parameter')
     extra_cargs += ['-Wno-unused-parameter']

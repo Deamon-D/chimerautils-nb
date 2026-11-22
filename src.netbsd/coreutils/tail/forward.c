@@ -86,7 +86,7 @@ static int rlines(FILE *, off_t, struct stat *);
 void
 forward(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
 {
-	int ch, n;
+	int ch;
 	int action=USE_SLEEP;
 	struct stat statbuf;
 

@@ -7,6 +7,7 @@ sort_srcs = [
 sort_prog = executable(
     'sort', sort_srcs,
     include_directories: [inc],
+    c_args : ['-Wno-format-truncation', '-Wno-use-after-free'],
     link_with: [libcompat],
     install: true,
 )

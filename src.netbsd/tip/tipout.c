@@ -75,7 +75,7 @@ intEMT(void)
 	char reply;
 
 	(void)read(fildes[0], &c, 1);		/* We got the message */
-	while (c != '\n' && line + sizeof line - pline > 0) {
+	while (c != '\n' && line + sizeof line - pline > 1) {
 		*pline++ = c;
 		(void)read(fildes[0], &c, 1);
 	}
@@ -122,7 +122,7 @@ tipout(void)
 	char buf[BUFSIZ];
 	char *cp;
 	int cnt;
-	int omask;
+	sigset_t omask, nmask;
 	struct pollfd pfd[2];
 
 	(void)signal(SIGINT, SIG_IGN);
@@ -135,7 +135,10 @@ tipout(void)
 	pfd[1].fd = FD;
 	pfd[1].events = POLLIN|POLLHUP;
 
-	for (omask = 0;; (void)sigsetmask(omask)) {
+	sigemptyset(&nmask);
+	sigemptyset(&omask);
+	sigaddset(&nmask, SIGTERM);
+	for (;; (void)sigprocmask(SIG_SETMASK, &omask, NULL)) {
 
 	if (poll(pfd, 2, -1) > 0) {
 
@@ -162,13 +165,13 @@ tipout(void)
 			if (cnt <= 0) {
 				/* lost carrier || EOF */
 				if ((cnt < 0 && errno == EIO) || (cnt == 0)) {
-					(void)sigblock(sigmask(SIGTERM));
+					sigprocmask(SIG_BLOCK, &nmask, &omask);
 					intTERM(0);
 					/*NOTREACHED*/
 				}
 				continue;
 			}
-			omask = sigblock(SIGTERM);
+			sigprocmask(SIG_BLOCK, &nmask, &omask);
 			for (cp = buf; cp < buf + cnt; cp++)
 				*cp &= STRIP_PAR;
 			(void)write(1, buf, (size_t)cnt);

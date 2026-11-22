@@ -25,8 +25,8 @@
  * SUCH DAMAGE.
  */
 
-#ifndef _PWD_BSD_H
-#define _PWD_BSD_H
+#ifndef PWD_H
+#define PWD_H
 
 #include <stdint.h>
 #include_next <pwd.h>

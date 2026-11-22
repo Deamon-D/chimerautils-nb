@@ -52,10 +52,13 @@ static inline void HashInit(EVP_MD_CTX **ctx, const EVP_MD *type) {
         errx(1, "could not init digest");
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 static inline void HashUpdate(EVP_MD_CTX **ctx, const void *data, size_t len) {
     if (!EVP_DigestUpdate(*ctx, data, len))
         errx(1, "could not update digest");
 }
+#pragma GCC diagnostic pop
 
 static inline void HashFinal(unsigned char *digest, EVP_MD_CTX **ctx) {
     if (!EVP_DigestFinal(*ctx, digest, NULL))
@@ -64,6 +67,8 @@ static inline void HashFinal(unsigned char *digest, EVP_MD_CTX **ctx) {
     EVP_MD_CTX_free(*ctx);
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 static inline char *HashEnd(EVP_MD_CTX **ctx, char *buf) {
     unsigned char digbuf[EVP_MAX_MD_SIZE + 1];
     unsigned int mdlen = 0;
@@ -83,6 +88,7 @@ static inline char *HashEnd(EVP_MD_CTX **ctx, char *buf) {
 
     return buf;
 }
+#pragma GCC diagnostic pop
 
 static inline char *HashFile(const char *name, char *buf, const EVP_MD *type) {
     EVP_MD_CTX *ctx;

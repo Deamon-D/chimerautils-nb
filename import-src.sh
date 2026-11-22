@@ -32,7 +32,7 @@ cd ${TMPDIR}
 if [ -z "$SRCTAR" ]; then
     SRCTAR="src.tgz"
     curl -L --retry 3 --ftp-pasv -o "$SRCTAR" "$SRC" || fail_exit
-    echo "SHA512 ($SRCTAR) = $SHA512" | cksum -a sha512 -c || fail_exit
+    echo "SHA512 ($SRCTAR) = $SHA512" | cksum -a sha512 -c >/dev/null 2>&1 || fail_exit
 fi
 tar -xf "$SRCTAR"
 
@@ -247,6 +247,7 @@ cp -p usr/src/lib/libc/gen/unvis.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/pwcache.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libutil/strpct.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/stdlib/strtonum.c ${CWD}/src.orig/compat
+cp -p usr/src/lib/libc/stdio/fparseln.c ${CWD}/src.orig/compat
 cp -p usr/src/lib/libc/gen/pwcache.h ${CWD}/src.orig/include
 cp -p usr/src/include/vis.h ${CWD}/src.orig/include
 

@@ -460,6 +460,24 @@ parseid(const char *name, id_t *id)
 }
 
 /*
+ * quiet_mktemp --
+ *	mktemp implementation used mkstemp to avoid mktemp warnings.  We
+ *	really do need mktemp semantics here as we will be creating a link.
+ */
+static char *
+quiet_mktemp(char *template)
+{
+	int fd;
+
+	if ((fd = mkstemp(template)) == -1)
+		return (NULL);
+	close (fd);
+	if (unlink(template) == -1)
+		err(EXIT_FAILURE, "unlink %s", template);
+	return (template);
+}
+
+/*
  * do_link --
  *	make a hard link, obeying dorename if set
  *	return -1 on failure
@@ -473,7 +491,7 @@ do_link(char *from_name, char *to_name)
 	if (dorename) {
 		(void)snprintf(tmpl, sizeof(tmpl), "%s.inst.XXXXXX", to_name);
 		/* This usage is safe. */
-		if (mktemp(tmpl) == NULL)
+		if (quiet_mktemp(tmpl) == NULL)
 			err(EXIT_FAILURE, "%s: mktemp", tmpl);
 		ret = link(from_name, tmpl);
 		if (ret == 0) {
@@ -505,7 +523,7 @@ do_symlink(char *from_name, char *to_name)
 	if (dorename) {
 		(void)snprintf(tmpl, sizeof(tmpl), "%s.inst.XXXXXX", to_name);
 		/* This usage is safe. */
-		if (mktemp(tmpl) == NULL)
+		if (quiet_mktemp(tmpl) == NULL)
 			err(EXIT_FAILURE, "%s: mktemp", tmpl);
 
 		if (symlink(from_name, tmpl) == -1)

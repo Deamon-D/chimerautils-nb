@@ -157,6 +157,53 @@
  
  
  static void stdinit(void);
+--- src.orig/compat/fparseln.c
++++ src.netbsd/compat/fparseln.c
+@@ -43,7 +43,7 @@
+ 
+ #if ! HAVE_FPARSELN || BROKEN_FPARSELN
+ 
+-#ifndef HAVE_NBTOOL_CONFIG_H
++#if 0
+ #include "reentrant.h"
+ #include "local.h"
+ #else
+@@ -95,7 +95,8 @@
+ {
+ 	static const char dstr[3] = { '\\', '\\', '#' };
+ 
+-	size_t	s, len;
++	ssize_t	s;
++	size_t len, bufsize;
+ 	char   *buf;
+ 	char   *ptr, *cp;
+ 	int	cnt;
+@@ -104,6 +105,7 @@
+ 	_DIAGASSERT(fp != NULL);
+ 
+ 	len = 0;
++	bufsize = 0;
+ 	buf = NULL;
+ 	cnt = 1;
+ 
+@@ -127,7 +129,7 @@
+ 		if (lineno)
+ 			(*lineno)++;
+ 
+-		if ((ptr = __fgetln(fp, &s)) == NULL)
++		if ((s = getline(&ptr, &bufsize, fp)) == -1)
+ 			break;
+ 
+ 		if (s && com) {		/* Check and eliminate comments */
+@@ -178,6 +180,8 @@
+ 
+ 	FUNLOCKFILE(fp);
+ 
++	free(ptr);
++
+ 	if ((flags & FPARSELN_UNESCALL) != 0 && esc && buf != NULL &&
+ 	    strchr(buf, esc) != NULL) {
+ 		ptr = cp = buf;
 --- src.orig/compat/parsedate.y
 +++ src.netbsd/compat/parsedate.y
 @@ -819,7 +819,7 @@
@@ -1669,7 +1716,15 @@
  		case 'P':
  			f_fullpath = 1;
  			break;
-@@ -592,14 +589,6 @@
+@@ -507,7 +504,6 @@
+ 	const char *user, *group;
+ 	char buf[21];		/* 64 bits == 20 digits, +1 for NUL */
+ 	char nuser[12], ngroup[12];
+-	char *flags = NULL;
+ 
+ 	/*
+ 	 * If list is NULL there are two possibilities: that the parent
+@@ -592,14 +588,6 @@
  					maxuser = ulen;
  				if ((glen = strlen(group)) > maxgroup)
  					maxgroup = glen;
@@ -1684,7 +1739,7 @@
  				if ((np = malloc(sizeof(NAMES) +
  				    ulen + glen + flen + 2)) == NULL)
  					err(EXIT_FAILURE, NULL);
-@@ -609,11 +598,6 @@
+@@ -609,11 +597,6 @@
  				np->group = &np->data[ulen + 1];
  				(void)strcpy(np->group, group);
  
@@ -2015,6 +2070,15 @@
      const char *file,
      const char *fmt, int flen,
      char *buf, size_t blen,
+@@ -660,7 +662,7 @@
+ {
+ 	uint64_t data;
+ 	char *stmp, lfmt[24], tmp[20];
+-	const char *sdata;
++	const char *sdata = NULL;
+ 	char smode[12], sid[13], path[PATH_MAX + 4], visbuf[PATH_MAX * 4 + 4];
+ 	struct passwd *pw;
+ 	struct group *gr;
 @@ -688,8 +690,9 @@
  	switch (what) {
  	case SHOW_st_dev:
@@ -2467,11 +2531,13 @@
  
  #include <limits.h>
  #include <fcntl.h>
-@@ -88,9 +87,8 @@
+@@ -87,10 +86,9 @@
+ void
  forward(FILE *fp, enum STYLE style, off_t off, struct stat *sbp)
  {
- 	int ch, n;
+-	int ch, n;
 -	int kq=-1, action=USE_SLEEP;
++	int ch;
 +	int action=USE_SLEEP;
  	struct stat statbuf;
 -	struct kevent ev[2];
@@ -2885,7 +2951,50 @@
  		} else if (strcmp(digest, "sha1") == 0) {
  			digesttype = DIGEST_SHA1;
  		} else if (strcmp(digest, "sha256") == 0) {
-@@ -574,9 +569,6 @@
+@@ -465,6 +460,24 @@
+ }
+ 
+ /*
++ * quiet_mktemp --
++ *	mktemp implementation used mkstemp to avoid mktemp warnings.  We
++ *	really do need mktemp semantics here as we will be creating a link.
++ */
++static char *
++quiet_mktemp(char *template)
++{
++	int fd;
++
++	if ((fd = mkstemp(template)) == -1)
++		return (NULL);
++	close (fd);
++	if (unlink(template) == -1)
++		err(EXIT_FAILURE, "unlink %s", template);
++	return (template);
++}
++
++/*
+  * do_link --
+  *	make a hard link, obeying dorename if set
+  *	return -1 on failure
+@@ -478,7 +491,7 @@
+ 	if (dorename) {
+ 		(void)snprintf(tmpl, sizeof(tmpl), "%s.inst.XXXXXX", to_name);
+ 		/* This usage is safe. */
+-		if (mktemp(tmpl) == NULL)
++		if (quiet_mktemp(tmpl) == NULL)
+ 			err(EXIT_FAILURE, "%s: mktemp", tmpl);
+ 		ret = link(from_name, tmpl);
+ 		if (ret == 0) {
+@@ -510,7 +523,7 @@
+ 	if (dorename) {
+ 		(void)snprintf(tmpl, sizeof(tmpl), "%s.inst.XXXXXX", to_name);
+ 		/* This usage is safe. */
+-		if (mktemp(tmpl) == NULL)
++		if (quiet_mktemp(tmpl) == NULL)
+ 			err(EXIT_FAILURE, "%s: mktemp", tmpl);
+ 
+ 		if (symlink(from_name, tmpl) == -1)
+@@ -574,9 +587,6 @@
  				case DIGEST_MD5:
  					dres = MD5File(from_name, NULL);
  					break;
@@ -2895,7 +3004,7 @@
  				case DIGEST_SHA1:
  					dres = SHA1File(from_name, NULL);
  					break;
-@@ -872,7 +864,6 @@
+@@ -872,7 +882,6 @@
  	u_char	*p;
  	u_char	buf[MAXBSIZE];
  	MD5_CTX		ctxMD5;
@@ -2903,7 +3012,7 @@
  	SHA1_CTX	ctxSHA1;
  	SHA256_CTX	ctxSHA256;
  	SHA384_CTX	ctxSHA384;
-@@ -882,9 +873,6 @@
+@@ -882,9 +891,6 @@
  	case DIGEST_MD5:
  		MD5Init(&ctxMD5);
  		break;
@@ -2913,7 +3022,7 @@
  	case DIGEST_SHA1:
  		SHA1Init(&ctxSHA1);
  		break;
-@@ -938,9 +926,6 @@
+@@ -938,9 +944,6 @@
  			case DIGEST_MD5:
  				MD5Update(&ctxMD5, p, size);
  				break;
@@ -2923,7 +3032,7 @@
  			case DIGEST_SHA1:
  				SHA1Update(&ctxSHA1, p, size);
  				break;
-@@ -972,9 +957,6 @@
+@@ -972,9 +975,6 @@
  				case DIGEST_MD5:
  					MD5Update(&ctxMD5, buf, nr);
  					break;
@@ -2933,7 +3042,7 @@
  				case DIGEST_SHA1:
  					SHA1Update(&ctxSHA1, buf, nr);
  					break;
-@@ -1002,8 +984,6 @@
+@@ -1002,8 +1002,6 @@
  	switch (digesttype) {
  	case DIGEST_MD5:
  		return MD5End(&ctxMD5, NULL);
@@ -2960,7 +3069,7 @@
  
  /*
   * __BT_OPEN -- Open a btree.
-@@ -201,12 +203,12 @@
+@@ -201,17 +203,18 @@
  		default:
  			goto einval;
  		}
@@ -2975,7 +3084,14 @@
  			goto err;
  		F_SET(t, B_INMEM);
  	}
-@@ -326,7 +328,7 @@
+ 
+-
++	if (fstat(t->bt_fd, &sb))
++		goto err;
+ 	if (sb.st_size) {
+ 		if ((nr = read(t->bt_fd, &m, sizeof(BTMETA))) < 0)
+ 			goto err;
+@@ -326,7 +329,7 @@
  einval:	errno = EINVAL;
  	goto err;
  
@@ -2984,7 +3100,7 @@
  	goto err;
  
  err:	if (t) {
-@@ -389,6 +391,29 @@
+@@ -389,6 +392,29 @@
  }
  
  static int
@@ -3092,6 +3208,44 @@
  
  DB	*__bt_open(const char *, int, mode_t, const BTREEINFO *, int);
  DB	*__hash_open(const char *, int, mode_t, const HASHINFO *, int);
+--- src.orig/diffutils/sdiff/sdiff.c
++++ src.netbsd/diffutils/sdiff/sdiff.c
+@@ -283,7 +283,7 @@
+ 	/* Subtract column divider and divide by two. */
+ 	width = (wflag - 3) / 2;
+ 	/* Make sure line_width can fit in size_t. */
+-	if (width > (SIZE_T_MAX - 3) / 2)
++	if (width > (SIZE_MAX - 3) / 2)
+ 		errx(2, "width is too large: %zu", width);
+ 	line_width = width * 2 + 3;
+ 
+@@ -383,7 +383,7 @@
+ 			 * If rounding to next multiple of eight causes
+ 			 * an integer overflow, just return.
+ 			 */
+-			if (*col > SIZE_T_MAX - 8)
++			if (*col > SIZE_MAX - 8)
+ 				return;
+ 
+ 			/* Round to next multiple of eight. */
+@@ -642,7 +642,7 @@
+ 		if (file1start != file1end)
+ 			errx(2, "append cannot have a file1 range: %s",
+ 			    line);
+-		if (file1start == SIZE_T_MAX)
++		if (file1start == SIZE_MAX)
+ 			errx(2, "file1 line range too high: %s", line);
+ 		file1start = ++file1end;
+ 	}
+@@ -654,7 +654,7 @@
+ 		if (file2start != file2end)
+ 			errx(2, "delete cannot have a file2 range: %s",
+ 			    line);
+-		if (file2start == SIZE_T_MAX)
++		if (file2start == SIZE_MAX)
+ 			errx(2, "file2 line range too high: %s", line);
+ 		file2start = ++file2end;
+ 	}
 --- src.orig/ed/ed.h
 +++ src.netbsd/ed/ed.h
 @@ -33,7 +33,7 @@
@@ -3504,6 +3658,24 @@
  }
  #endif
  
+@@ -1326,7 +1328,7 @@
+ 	if (cflag == 0) {
+ #ifndef SMALL
+ 		if (isb.st_nlink > 1 && fflag == 0) {
+-			maybe_warnx("%s has %d other link%s -- "
++			maybe_warnx("%s has %lu other link%s -- "
+ 				    "skipping", file, isb.st_nlink - 1,
+ 				    isb.st_nlink == 1 ? "" : "s");
+ 			close(in);
+@@ -1530,7 +1532,7 @@
+ 	if (cflag == 0 || lflag) {
+ #ifndef SMALL
+ 		if (isb.st_nlink > 1 && lflag == 0 && fflag == 0) {
+-			maybe_warnx("%s has %d other links -- skipping",
++			maybe_warnx("%s has %lu other links -- skipping",
+ 			    file, isb.st_nlink - 1);
+ 			goto lose;
+ 		}
 --- src.orig/gzip/unlz.c
 +++ src.netbsd/gzip/unlz.c
 @@ -310,8 +310,8 @@
@@ -4012,8 +4184,8 @@
  	}
  
  	/* For each path, for each program... */
---- src.orig/nc/netcat.c
-+++ src.netbsd/nc/netcat.c
+--- src.orig/netcat/netcat.c
++++ src.netbsd/netcat/netcat.c
 @@ -64,6 +64,17 @@
  #endif
  #include "atomicio.h"
@@ -4032,8 +4204,8 @@
  #ifdef __NetBSD__
  #define accept4(a, b, c, d) paccept((a), (b), (c), NULL, (d))
  #endif
---- src.orig/nc/socks.c
-+++ src.netbsd/nc/socks.c
+--- src.orig/netcat/socks.c
++++ src.netbsd/netcat/socks.c
 @@ -39,7 +39,7 @@
  #include <stdlib.h>
  #include <string.h>
@@ -4432,6 +4604,24 @@
  	while ((ch = getopt(argc, argv, ":vs:"
  #ifdef DEBUG
  					     "V"
+--- src.orig/sh/trap.c
++++ src.netbsd/sh/trap.c
+@@ -610,8 +610,13 @@
+ 		if (!vforked)
+ 			*t = action;
+ 
+-		if (action == S_CATCH)
+-			(void)siginterrupt(signo, 1);
++		if (action == S_CATCH) {
++			struct sigaction sa;
++			if (sigaction(signo, NULL, &sa) != -1) {
++				sa.sa_flags &= ~SA_RESTART;
++				sigaction(signo, &sa, NULL);
++			}
++		}
+ 		/*
+ 		 * If our parent accidentally blocked signals for
+ 		 * us make sure we unblock them
 --- src.orig/sh/var.c
 +++ src.netbsd/sh/var.c
 @@ -1495,6 +1495,75 @@
@@ -4651,6 +4841,54 @@
  
  #include <err.h>
  #include <fcntl.h>
+--- src.orig/tip/tipout.c
++++ src.netbsd/tip/tipout.c
+@@ -75,7 +75,7 @@
+ 	char reply;
+ 
+ 	(void)read(fildes[0], &c, 1);		/* We got the message */
+-	while (c != '\n' && line + sizeof line - pline > 0) {
++	while (c != '\n' && line + sizeof line - pline > 1) {
+ 		*pline++ = c;
+ 		(void)read(fildes[0], &c, 1);
+ 	}
+@@ -122,7 +122,7 @@
+ 	char buf[BUFSIZ];
+ 	char *cp;
+ 	int cnt;
+-	int omask;
++	sigset_t omask, nmask;
+ 	struct pollfd pfd[2];
+ 
+ 	(void)signal(SIGINT, SIG_IGN);
+@@ -135,7 +135,10 @@
+ 	pfd[1].fd = FD;
+ 	pfd[1].events = POLLIN|POLLHUP;
+ 
+-	for (omask = 0;; (void)sigsetmask(omask)) {
++	sigemptyset(&nmask);
++	sigemptyset(&omask);
++	sigaddset(&nmask, SIGTERM);
++	for (;; (void)sigprocmask(SIG_SETMASK, &omask, NULL)) {
+ 
+ 	if (poll(pfd, 2, -1) > 0) {
+ 
+@@ -162,13 +165,13 @@
+ 			if (cnt <= 0) {
+ 				/* lost carrier || EOF */
+ 				if ((cnt < 0 && errno == EIO) || (cnt == 0)) {
+-					(void)sigblock(sigmask(SIGTERM));
++					sigprocmask(SIG_BLOCK, &nmask, &omask);
+ 					intTERM(0);
+ 					/*NOTREACHED*/
+ 				}
+ 				continue;
+ 			}
+-			omask = sigblock(SIGTERM);
++			sigprocmask(SIG_BLOCK, &nmask, &omask);
+ 			for (cp = buf; cp < buf + cnt; cp++)
+ 				*cp &= STRIP_PAR;
+ 			(void)write(1, buf, (size_t)cnt);
 --- src.orig/util/fts.c
 +++ src.netbsd/util/fts.c
 @@ -55,10 +55,6 @@

@@ -30,16 +30,6 @@
 
 #include_next <sys/param.h>
 
-/* max raw I/O transfer size */
-/*
- * XXX: this is _probably_ going to be 1M on the system if it were
- * running FreeBSD.  What is the corresponding Linux parameter here
- * and the sanctioned way to retrieve it?
- */
-#ifndef MAXPHYS
-#define MAXPHYS (1024 * 1024)
-#endif
-
 /*
  * File system parameters and macros.
  *
@@ -53,8 +43,5 @@
 #ifndef MAXBSIZE
 #define MAXBSIZE 65536 /* must be power of 2 */
 #endif
-
-#define roundup2(x, y)  (((x)+((y)-1))&(~((y)-1))) /* if y is powers of two */
-#define nitems(x) (sizeof((x)) / sizeof((x)[0]))
 
 #endif

@@ -84,7 +84,7 @@ static enum avai_units {
 uint64_t flags = 0;
 
 static const char *unit_name(void);
-enum avai_units best_unit(unsigned long);
+static enum avai_units best_unit(unsigned long);
 
 int
 main(int argc, char *argv[])
@@ -251,7 +251,7 @@ unit_name(void)
 	return "UK";
 }
 
-enum avai_units
+static enum avai_units
 best_unit(unsigned long value)
 {
 	/* use the current unit when --human has not been passed */

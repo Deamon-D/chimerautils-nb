@@ -178,13 +178,16 @@ main(int argc, char *argv[])
 	/* we need to get some values from /proc to match free output */
 	while (fgets(buf, sizeof(buf), fp)) {
 		if (!strncmp(buf, "MemAvailable:", 13)) {
-			sscanf(buf + 13, "%ld", &availableram);
+			if (sscanf(buf + 13, "%ld", &availableram) != 1)
+				errx(1, "cannot read MemAvailable from /proc/meminfo");
 			availableram = (availableram * 1024) / info.mem_unit;
 		} else if (!strncmp(buf, "Cached:", 7)) {
-			sscanf(buf + 7, "%ld", &cachedram);
+			if (sscanf(buf + 7, "%ld", &cachedram) != 1)
+				errx(1, "cannot read Cached from /proc/meminfo");
 			cachedram = (cachedram * 1024) / info.mem_unit;
 		} else if (!strncmp(buf, "SReclaimable:", 13)) {
-			sscanf(buf + 13, "%ld", &sreclaimable);
+			if (sscanf(buf + 13, "%ld", &sreclaimable) != 1)
+				errx(1, "cannot read SReclaimable from /poc/meminfo");
 			sreclaimable = (sreclaimable * 1024) / info.mem_unit;
 		}
 	}

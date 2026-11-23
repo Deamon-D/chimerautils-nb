@@ -40,7 +40,6 @@ endif
 
 # not ported
 #if ncurses.found()
-#    subdir('nvi')
 #    subdir('telnet')
 #endif
 

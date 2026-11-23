@@ -1,5 +1,5 @@
 # Thanks
-- We use some ideas and/or patches from the following projects:
+We use some ideas and/or patches from the following projects:
 
  - [chimerautils](https://github.com/chimera-linux/chimerautils)
 

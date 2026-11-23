@@ -205,6 +205,7 @@ usr.bin/machine
 usr.bin/uudecode
 usr.bin/uuencode
 usr.bin/uuidgen
+usr.bin/what
 "
 
 for p in ${CMDS_CORE}; do

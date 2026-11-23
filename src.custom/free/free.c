@@ -100,6 +100,8 @@ main(int argc, char *argv[])
 	unsigned long sreclaimable;
 	unsigned long cachedram, availableram;
 
+	sreclaimable = cachedram = availableram = 0;
+
 	while ((c = getopt_long(argc, argv, "bkmghV", gnuopts, NULL)) != -1) {
 		switch (c) {
 		case 'b':
@@ -194,6 +196,12 @@ main(int argc, char *argv[])
 
 	fclose(fp);
 
+	/*
+	 * Check when these fields are not available (e.g, old kernels)
+	*/
+	if (!availableram || !cachedram || !sreclaimable)
+		fprintf(stderr, "WARNING: cannot get MemAvailable/Cached/SReclaimable from /proc\n");
+
 	/* create these arrays to print its values in a loop */
 	unsigned long ram[RAM_SIZE] = {
 		info.totalram * info.mem_unit,
@@ -230,7 +238,7 @@ main(int argc, char *argv[])
 			printf(" %10lu", swap[i] / unit);
 	}
 	putchar('\n');
-	return 0;
+	return (!availableram || !cachedram || !sreclaimable);
 }
 
 static const char *

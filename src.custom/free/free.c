@@ -140,7 +140,14 @@ main(int argc, char *argv[])
 		case 'h':
 			flags |= HUMAN_FLAG;
 			break;
+		case 'V':
+			printf(	"%s (" PROJECT_NAME ") " PROJECT_VERSION "\n"
+				"Copyright (C) 2026 Deamon-D <daemondev00@gmail.com>\n"
+				"SPDX-License-Identifier: BSD-2-Clause\n",
+				__progname);
+			return EXIT_SUCCESS;
 		case 'H':
+		default:
 			printf(	"Usage: %s [OPTION]...\n"
 				"Show memory and swap information.\n"
 				"\n"
@@ -159,15 +166,7 @@ main(int argc, char *argv[])
 				"      --help            display this help and exit\n"
 				"  -V, --version         output version information and exit\n",
 				__progname);
-			return EXIT_SUCCESS;
-		case 'V':
-			printf(	"%s (" PROJECT_NAME ") " PROJECT_VERSION "\n"
-				"Copyright (C) 2026 Deamon-D <daemondev00@gmail.com>\n"
-				"SPDX-License-Identifier: BSD-2-Clause\n",
-				__progname);
-			return EXIT_SUCCESS;
-		default:
-			break;
+			return c != 'H';
 		}
 	}
 

@@ -107,6 +107,9 @@ main(int argc, char *argv[])
 		break;
 	}
 
+	/*
+	 * The result must be at least 1
+	*/
 	printf("%u\n", (ignore >= processors) ? 1 : processors - ignore);
 	return 0;
 }

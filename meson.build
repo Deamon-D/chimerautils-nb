@@ -84,7 +84,6 @@ tinfo = dependency('tinfo', required: false)
 # meson built-in behavior, which may or may not be correct, in an
 # attempt to be compatible with netbsd curses and so on
 #
-# some stuff needs full curses (nvi, telnet)
 foreach opt: ['ncursesw', 'ncurses', 'curses']
     ncurses = dependency(opt, required: false)
     if ncurses.found()
@@ -118,9 +117,6 @@ libedit = dependency('libedit', required: get_option('libedit'))
 
 # dc(1), install(1), sort(1), fetch(1) need libcrypto
 libcrypto = dependency('libcrypto', required: get_option('openssl'))
-
-# telnet(1) need libcrypt
-libcrypt = cc.find_library('crypt', required: true)
 
 # fetch(1) needs libssl
 libssl = dependency('libssl', required: get_option('openssl'))

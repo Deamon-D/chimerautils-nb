@@ -193,10 +193,13 @@ usr.bin/write
 
 # generic utilities
 CMDS_GEN="
+usr.bin/asa
+usr.bin/biff
 usr.bin/c11
 usr.bin/c17
 usr.bin/c89
 usr.bin/c99
+usr.bin/cleantags
 bin/domainname
 usr.bin/machine
 "

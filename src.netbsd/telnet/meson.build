@@ -1,7 +1,7 @@
 extra_cargs = [
     # PAM is only relevant for telnetd and we don't have that
     '-DUSE_TERMIO', '-DKLUDGELINEMODE', '-DENV_HACK', '-DNOPAM',
-    '-Wno-pointer-sign', '-Wno-cast-function-type'
+    '-Wno-pointer-sign', '-Wno-cast-function-type', '-Wno-implicit-fallthrough'
 ]
 
 if libcrypto.found()

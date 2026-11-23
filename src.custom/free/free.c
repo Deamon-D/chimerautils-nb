@@ -44,8 +44,6 @@
 
 extern char *__progname;
 
-#define HUMAN_FLAG	0x01
-
 /* the sizes of the arrays below */
 #define RAM_SIZE 6
 #define SWAP_SIZE 3
@@ -85,8 +83,7 @@ static enum avai_units {
 	PETABYTES = TERABYTES * 1000UL,
 } unit = KIBIBYTES;	/* kibibytes is the default */
 
-uint64_t flags = 0;
-
+static int human;
 static const char *unit_name(void);
 static enum avai_units best_unit(unsigned long);
 
@@ -138,7 +135,7 @@ main(int argc, char *argv[])
 			unit = PEBIBYTES;
 			break;
 		case 'h':
-			flags |= HUMAN_FLAG;
+			human = 1;
 			break;
 		case 'V':
 			printf(	"%s (" PROJECT_NAME ") " PROJECT_VERSION "\n"
@@ -222,7 +219,7 @@ main(int argc, char *argv[])
 
 	for (int i = 0; i < RAM_SIZE; i++) {
 		unit = best_unit(ram[i]);
-		if (flags & HUMAN_FLAG)
+		if (human)
 			printf(" %8.1f%s", (double)ram[i] / unit, unit_name());
 		else 
 			printf(" %10lu", ram[i] / unit);
@@ -231,7 +228,7 @@ main(int argc, char *argv[])
 	printf("\n%-10s", "Swap:");
 	for (int i = 0; i < SWAP_SIZE; i++) {
 		unit = best_unit(swap[i]);
-		if (flags & HUMAN_FLAG)
+		if (human)
 			printf(" %8.1f%s", (double)swap[i] / unit, unit_name());
 		else 
 			printf(" %10lu", swap[i] / unit);
@@ -265,8 +262,8 @@ static enum avai_units
 best_unit(unsigned long value)
 {
 	/* use the current unit when --human has not been passed */
-	if ((flags & HUMAN_FLAG) == 0)
-			return unit;
+	if (human)
+		return unit;
 
 	if (value < KIBIBYTES)
 		return BYTES;

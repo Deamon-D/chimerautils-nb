@@ -113,4 +113,5 @@ asa(FILE *f)
 
 		(void)putchar('\n');
 	}
+	free(buf);
 }

@@ -237,7 +237,6 @@ copy_cmd usr.bin/jot
 copy_cmd usr.bin/m4
 copy_cmd usr.bin/patch
 copy_cmd usr.bin/sed
-copy_cmd usr.bin/su
 copy_cmd usr.bin/tip
 copy_cmd usr.bin/vis
 copy_cmd usr.bin/unvis

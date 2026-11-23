@@ -100,7 +100,7 @@ main(int argc, char *argv[])
 	unsigned long sreclaimable;
 	unsigned long cachedram, availableram;
 
-	while ((c = getopt_long(argc, argv, "bKMGTPkmgtphHV", gnuopts, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "bkmghV", gnuopts, NULL)) != -1) {
 		switch (c) {
 		case 'b':
 			unit = BYTES;

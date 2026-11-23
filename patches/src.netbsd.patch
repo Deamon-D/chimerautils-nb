@@ -4769,6 +4769,235 @@
  #ifndef	VUNSET		/* double include protection */
  /*
   * Shell variables.
+--- src.orig/telnet/libtelnet/pk.c
++++ src.netbsd/telnet/libtelnet/pk.c
+@@ -48,7 +48,7 @@
+  */
+ 
+ #include <sys/time.h>
+-#include <des.h>
++#include <openssl/des.h>
+ #include <openssl/bn.h>
+ #include <fcntl.h>
+ #include <stdio.h>
+@@ -146,7 +146,7 @@
+ 	BN_mod_exp(common, public, secret, modulus, ctx);
+ 	extractdeskey(common, deskey);
+ 	extractideakey(common, ideakey);
+-	des_set_odd_parity(deskey);
++	DES_set_odd_parity(deskey);
+ 
+ 	BN_CTX_free(ctx);
+ 	BN_free(common);
+@@ -246,14 +246,14 @@
+ {
+ 	char buf[256];
+ 	DesData i;
+-	des_key_schedule k;
++	DES_key_schedule k;
+ 	size_t l, op, deslen;
+ 
+ 	(void)memset(&i, 0, sizeof(i));
+ 	(void)memset(buf, 0, sizeof(buf));
+ 	deslen = ((strlen(in) + 7) / 8) * 8;
+-	des_key_sched(key, k);
+-	des_cbc_encrypt(in, buf, deslen, k, &i, DES_ENCRYPT);
++	DES_key_sched(key, &k);
++	DES_cbc_encrypt(in, buf, deslen, &k, &i, DES_ENCRYPT);
+ 	for (l = 0, op = 0; l < deslen; l++) {
+ 		out[op++] = hextab[(buf[l] & 0xf0) >> 4];
+ 		out[op++] = hextab[(buf[l] & 0x0f)];
+@@ -267,7 +267,7 @@
+ {
+ 	char buf[256];
+ 	DesData i;
+-	des_key_schedule k;
++	DES_key_schedule k;
+ 	int n1, n2, op;
+ 	size_t l;
+ 	size_t len = strlen(in) / 2;
+@@ -286,7 +286,7 @@
+ 			n2 = in[op + 1] - '0';
+ 		buf[l] = (char)(n1 * 16 + n2);
+ 	}
+-	des_key_sched(key, k);
+-	des_cbc_encrypt(buf, out, len, k, &i, DES_DECRYPT);
++	DES_key_sched(key, &k);
++	DES_cbc_encrypt(buf, out, len, &k, &i, DES_DECRYPT);
+ 	out[len] = '\0';
+ }
+--- src.orig/telnet/libtelnet/sra.c
++++ src.netbsd/telnet/libtelnet/sra.c
+@@ -439,7 +439,7 @@
+ 	}
+ }
+ 
+-#ifdef NOPAM
++#if 0
+ static int
+ isroot(const char *usr)
+ {
+@@ -464,10 +464,13 @@
+ 
+ 	return ((t = getttynam(ttyn)) && t->ty_status & TTY_SECURE);
+ }
++#endif
+ 
++#ifdef NOPAM
+ static int
+ check_user(char *name, const char *cred)
+ {
++#if 0
+ 	struct passwd pws, *pw;
+ 	char pwbuf[1024];
+ 	char *xpasswd, *salt;
+@@ -492,6 +495,7 @@
+ 		}
+ 		return 1;
+ 	}
++#endif
+ 	return 0;
+ }
+ #else	/* !NOPAM */
+--- src.orig/telnet/telnet/commands.c
++++ src.netbsd/telnet/telnet/commands.c
+@@ -71,6 +71,7 @@
+ #include <sys/file.h>
+ #include <sys/wait.h>
+ #include <sys/socket.h>
++#include <sys/un.h>
+ #include <netinet/in.h>
+ #include <arpa/inet.h>
+ 
+@@ -82,6 +83,7 @@
+ #include <stdarg.h>
+ #include <unistd.h>
+ #include <err.h>
++#include <stddef.h>
+ 
+ #include <arpa/telnet.h>
+ 
+@@ -2041,14 +2043,24 @@
+ static const char *
+ sockaddr_ntop(struct sockaddr *sa)
+ {
+-    static char addrbuf[NI_MAXHOST];
+-    const int niflags = NI_NUMERICHOST;
++    void *addr;
++    static char addrbuf[INET6_ADDRSTRLEN];
+ 
+-    if (getnameinfo(sa, sa->sa_len, addrbuf, sizeof(addrbuf),
+-	    NULL, 0, niflags) == 0)
+-	return addrbuf;
+-    else
+-	return NULL;
++    switch (sa->sa_family) {
++    case AF_INET:
++        addr = &((struct sockaddr_in *)sa)->sin_addr;
++        break;
++    case AF_UNIX:
++        addr = &((struct sockaddr_un *)sa)->sun_path;
++        break;
++    case AF_INET6:
++        addr = &((struct sockaddr_in6 *)sa)->sin6_addr;
++        break;
++    default:
++        return NULL;
++    }
++    inet_ntop(sa->sa_family, addr, addrbuf, sizeof(addrbuf));
++    return addrbuf;
+ }
+ 
+ #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC)
+--- src.orig/telnet/telnet/externs.h
++++ src.netbsd/telnet/telnet/externs.h
+@@ -346,8 +346,11 @@
+ #  define termStopChar		new_tc.c_cc[VSTOP]
+ #  define termForw1Char		new_tc.c_cc[VEOL]
+ #  define termForw2Char		new_tc.c_cc[VEOL]
++#  ifndef VSTATUS
++extern cc_t termAytChar;
++#  else
+ #  define termAytChar		new_tc.c_cc[VSTATUS]
+-
++# endif
+ # define termEofCharp		&termEofChar
+ # define termEraseCharp		&termEraseChar
+ # define termIntCharp		&termIntChar
+--- src.orig/telnet/telnet/sys_bsd.c
++++ src.netbsd/telnet/telnet/sys_bsd.c
+@@ -169,8 +169,7 @@
+ void
+ TerminalFlushOutput(void)
+ {
+-    int com = 0;
+-    (void) ioctl(fileno(stdout), TIOCFLUSH, &com);
++    (void) ioctl(fileno(stdout), TCFLSH, TCIOFLUSH);
+ }
+ 
+ void
+@@ -199,8 +198,9 @@
+     case SLC_EW:	return(&termWerasChar);
+     case SLC_RP:	return(&termRprntChar);
+     case SLC_LNEXT:	return(&termLiteralNextChar);
++#ifdef VSTATUS
+     case SLC_AYT:	return(&termAytChar);
+-
++#endif
+     case SLC_SYNCH:
+     case SLC_BRK:
+     case SLC_EOR:
+@@ -569,7 +569,7 @@
+     set[2].fd = tin;
+     set[2].events = ttyin ? POLLIN : 0;
+ 
+-    if ((c = poll(set, 3, dopoll ? 0 : INFTIM)) < 0) {
++    if ((c = poll(set, 3, dopoll ? 0 : -1)) < 0) {
+ 	if (c == -1) {
+ 		    /*
+ 		     * we can get EINTR if we are in line mode,
+--- src.orig/telnet/telnet/telnet.c
++++ src.netbsd/telnet/telnet/telnet.c
+@@ -578,8 +578,8 @@
+ 	/*
+ 	 * Allocate an array to put the name pointers into
+ 	 */
+-	argv = NULL;
+-	if (reallocarr(&argv, n + 3, sizeof(char *)) != 0)
++	argv = (char**)malloc((n+3)*sizeof(char*));
++	if (argv == NULL)
+ 		return(unknown);
+ 
+ 	/*
+--- src.orig/telnet/telnet/terminal.c
++++ src.netbsd/telnet/telnet/terminal.c
+@@ -56,6 +56,10 @@
+ 
+ int termdata;			/* Debugging flag */
+ 
++#ifndef VSTATUS
++cc_t termAytChar;
++#endif
++
+ /*
+  * initialize the terminal data structures.
+  */
+--- src.orig/telnet/telnet/utilities.c
++++ src.netbsd/telnet/telnet/utilities.c
+@@ -841,11 +841,11 @@
+     set[0].events = POLLOUT;
+ 
+     if (TTYBYTES() == 0) {
+-	(void) poll(set, 1, INFTIM);
++	(void) poll(set, 1, -1);
+     } else {
+ 	while (TTYBYTES()) {
+ 	    (void) ttyflush(0);
+-	    (void) poll(set, 1, INFTIM);
++	    (void) poll(set, 1, -1);
+ 	}
+     }
+ }
 --- src.orig/tip/aculib/hayes.c
 +++ src.netbsd/tip/aculib/hayes.c
 @@ -121,14 +121,17 @@

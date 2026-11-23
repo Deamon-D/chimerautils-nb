@@ -24,6 +24,7 @@ It also provides the following functionality:
 
 * apply
 * tip/cu
+* telnet
 * gencat
 * jot
 * nc

@@ -242,7 +242,8 @@ copy_cmd usr.bin/vis
 copy_cmd usr.bin/unvis
 copy_cmd usr.bin/nc "" netcat
 copy_cmd external/historical/nawk/dist "" awk
-#copy_cmd contrib/telnet
+copy_cmd usr.bin/telnet "" telnet/telnet
+copy_cmd lib/libtelnet "" telnet/libtelnet
 
 # 'compat' is our static library with a subset of BSD library functions
 mkdir -p ${CWD}/src.orig/compat ${CWD}/src.orig/include
@@ -317,6 +318,11 @@ cp -p usr/src/include/tzfile.h ${CWD}/src.netbsd/include
 cp -p usr/src/lib/libedit/filecomplete.h ${CWD}/src.orig/include
 cp -p usr/src/lib/libedit/filecomplete.h ${CWD}/src.netbsd/include
 
+# telnet uses this header
+mkdir -p ${CWD}/src.orig/telnet/arpa ${CWD}/src.netbsd/telnet/arpa
+cp -p usr/src/include/arpa/telnet.h	${CWD}/src.orig/telnet/arpa
+cp -p usr/src/include/arpa/telnet.h	${CWD}/src.netbsd/telnet/arpa
+
 # These are not used
 rm -rf ${CWD}/src.orig/coreutils/sort/nls
 rm -rf ${CWD}/src.netbsd/coreutils/sort/nls
@@ -342,10 +348,6 @@ cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.orig/tip
 cp -p usr/src/lib/libc/gen/getcap.c ${CWD}/src.netbsd/tip
 rm -f ${CWD}/src.netbsd/tip/getcap.h
 
-# temove telnetd
-rm -rf ${CWD}/src.orig/telnet/telnetd
-rm -rf ${CWD}/src.netbsd/telnet/telnetd
-
 # meh
 rm -rf ${CWD}/src.orig/awk/testdir
 rm -rf ${CWD}/src.netbsd/awk/testdir
@@ -367,7 +369,7 @@ tar xf usr.bin.tar.gz
 mv src usr/src
 
 for p in usr.bin/diff usr.bin/diff3; do
-	copy_cmd "$p" diffutils
+    copy_cmd "$p" diffutils
 done
 
 #####################

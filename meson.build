@@ -119,6 +119,9 @@ libedit = dependency('libedit', required: get_option('libedit'))
 # dc(1), install(1), sort(1), fetch(1) need libcrypto
 libcrypto = dependency('libcrypto', required: get_option('openssl'))
 
+# telnet(1) need libcrypt
+libcrypt = cc.find_library('crypt', required: true)
+
 # fetch(1) needs libssl
 libssl = dependency('libssl', required: get_option('openssl'))
 

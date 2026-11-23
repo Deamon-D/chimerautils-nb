@@ -33,10 +33,9 @@ if not get_option('zlib').disabled() and zlib.found()
     subdir('gzip')
 endif
 
-# not ported
-#if ncurses.found()
-#    subdir('telnet')
-#endif
+if tinfo.found()
+    subdir('telnet')
+endif
 
 # tool collections
 

@@ -1,9 +1,10 @@
-Most of the code in this suite originates from FreeBSD and is provided under
-identical terms as FreeBSD, which is mostly BSD-2-Clause.
+Most of the code in this suite originates from NetBSD and is provided under
+identical terms as NetBSD, which is mostly BSD-2-Clause.
 
 Chimerautils also ships custom tools, which are likewise provided under the
 same license but have a different copyright:
 
+Copyright (c) 2026 Daemon-D <daemondev00@gmail.com>
 Copyright (c) 2021-2025 Chimera Linux developers
 
 Redistribution and use in source and binary forms, with or without
@@ -32,7 +33,7 @@ under the BSD-3-Clause license. However, most of the work there has been
 simple build adjustments which by themselves are not individually copyrightable,
 and most of the non-trivial work has since been done here and/or rewritten.
 Therefore, for simplicity, the whole is distributed under the same license
-as FreeBSD.
+as NetBSD.
 
-The original tools that do not come from FreeBSD, as well as any custom glue
+The original tools that do not come from NetBSD, as well as any custom glue
 code has always been BSD-2-Clause.

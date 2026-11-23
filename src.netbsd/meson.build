@@ -15,6 +15,7 @@ subdir('dbcompat')
 
 subdir('awk')
 subdir('apply')
+subdir('bc')
 subdir('compress')
 subdir('ed')
 subdir('gencat')

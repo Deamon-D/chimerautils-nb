@@ -202,6 +202,7 @@ usr.bin/c99
 usr.bin/cleantags
 bin/domainname
 usr.bin/machine
+usr.bin/rs
 usr.bin/uudecode
 usr.bin/uuencode
 usr.bin/uuidgen
@@ -236,6 +237,7 @@ done
 copy_cmd bin/ed
 copy_cmd bin/sh
 copy_cmd usr.bin/apply
+copy_cmd usr.bin/dc "" bc/dc
 copy_cmd usr.bin/compress
 copy_cmd usr.bin/gencat
 copy_cmd usr.bin/grep
@@ -251,6 +253,7 @@ copy_cmd usr.bin/nc "" netcat
 copy_cmd external/historical/nawk/dist "" awk
 copy_cmd usr.bin/telnet "" telnet/telnet
 copy_cmd lib/libtelnet "" telnet/libtelnet
+copy_cmd external/bsd/bc/dist "" bc/bc
 
 # 'compat' is our static library with a subset of BSD library functions
 mkdir -p ${CWD}/src.orig/compat ${CWD}/src.orig/include

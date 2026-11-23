@@ -16,6 +16,7 @@ It replaces the following GNU projects:
 * sed
 * ed
 * m4
+* bc
 * patch
 * gzip
 * gawk

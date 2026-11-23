@@ -157,6 +157,88 @@
  
  
  static void stdinit(void);
+--- src.orig/bc/dc/bcode.c
++++ src.netbsd/bc/dc/bcode.c
+@@ -75,7 +75,7 @@
+ static void		pop_print(void);
+ static void		pop_printn(void);
+ static __inline void	print_stack(void);
+-static __inline void	dup(void);
++static __inline void	dc_dup(void);
+ static void		swap(void);
+ static void		drop(void);
+ 
+@@ -199,7 +199,7 @@
+ 	{ '_',	parse_number	},
+ 	{ 'a',	to_ascii	},
+ 	{ 'c',	clear_stack	},
+-	{ 'd',	dup		},
++	{ 'd',	dc_dup		},
+ 	{ 'e',	print_err	},
+ 	{ 'f',	print_stack	},
+ 	{ 'i',	set_ibase	},
+@@ -550,7 +550,7 @@
+ }
+ 
+ static __inline void
+-dup(void)
++dc_dup(void)
+ {
+ 	stack_dup(&bmachine.stack);
+ }
+@@ -1688,9 +1688,10 @@
+ 	if (bmachine.readsp == bmachine.readstack_sz - 1) {
+ 		size_t newsz = bmachine.readstack_sz * 2;
+ 		struct source *stack = bmachine.readstack;
+-		int ret = reallocarr(&stack, newsz, sizeof(struct source));
+-		if (ret)
+-			errc(1, ret, "recursion too deep");
++		void *new = reallocarray(stack, newsz, sizeof(struct source));
++		if (new == NULL)
++			err(1, "reallocarray");
++		stack = new;
+ 		bmachine.readstack_sz = newsz;
+ 		bmachine.readstack = stack;
+ 	}
+--- src.orig/bc/dc/dc.c
++++ src.netbsd/bc/dc/dc.c
+@@ -51,8 +51,7 @@
+ 	if ((buf = strdup("")) == NULL)
+ 		err(1, NULL);
+ 	/* accept and ignore a single dash to be 4.4BSD dc(1) compatible */
+-	optind = 1;
+-	optreset = 1;
++	optind = 0;
+ 	while ((ch = getopt(argc, argv, "e:x-")) != -1) {
+ 		switch (ch) {
+ 		case 'e':
+--- src.orig/bc/dc/main.c
++++ src.netbsd/bc/dc/main.c
+@@ -28,8 +28,6 @@
+ int
+ main(int argc, char *argv[])
+ {
+-	setproctitle("dc");
+-
+ #ifdef __OpenBSD__
+ 	if (pledge("stdio rpath", NULL) == -1)
+ 		err(1, "pledge");
+--- src.orig/bc/dc/mem.c
++++ src.netbsd/bc/dc/mem.c
+@@ -73,9 +73,10 @@
+ void *
+ breallocarray(void *p, size_t nmemb, size_t size)
+ {
+-	int ret = reallocarr(&p, nmemb, size);
+-	if (ret)
+-		errc(1, ret, NULL);
++	void *new = reallocarray(p, nmemb, size);
++	if (new == NULL)
++		err(1, NULL);
++	p = new;
+ 	return p;
+ }
+ 
 --- src.orig/compat/fparseln.c
 +++ src.netbsd/compat/fparseln.c
 @@ -43,7 +43,7 @@
@@ -3726,6 +3808,16 @@
  	}
 +	free(buf);
  }
+--- src.orig/genutils/rs/rs.c
++++ src.netbsd/genutils/rs/rs.c
+@@ -55,6 +55,7 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <stdarg.h>
++#include <stddef.h>
+ 
+ static long	flags;
+ #define	TRANSPOSE	000001
 --- src.orig/genutils/uudecode/uudecode.c
 +++ src.netbsd/genutils/uudecode/uudecode.c
 @@ -63,8 +63,7 @@

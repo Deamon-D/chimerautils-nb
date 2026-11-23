@@ -3694,6 +3694,173 @@
  
  struct _msgT {
  	long    msgId;
+--- src.orig/genutils/asa/asa.c
++++ src.netbsd/genutils/asa/asa.c
+@@ -68,10 +68,11 @@
+ static void
+ asa(FILE *f)
+ {
+-	char *buf;
+-	size_t len;
++	char *buf = NULL;
++	size_t bufsize = 0;
++	ssize_t len;
+ 
+-	if ((buf = fgetln(f, &len)) != NULL) {
++	if ((len = getline(&buf, &bufsize, f)) != -1) {
+ 		if (len > 0 && buf[len - 1] == '\n')
+ 			buf[--len] = '\0';
+ 		/* special case the first line */
+@@ -87,7 +88,7 @@
+ 		if (len > 1 && buf[0] && buf[1])
+ 			(void)fwrite(buf + 1, 1, len - 1, stdout);
+ 
+-		while ((buf = fgetln(f, &len)) != NULL) {
++		while ((len = getline(&buf, &bufsize, f)) != -1) {
+ 			if (len > 0 && buf[len - 1] == '\n')
+ 				buf[--len] = '\0';
+ 			switch (buf[0]) {
+@@ -113,4 +114,5 @@
+ 
+ 		(void)putchar('\n');
+ 	}
++	free(buf);
+ }
+--- src.orig/genutils/uudecode/uudecode.c
++++ src.netbsd/genutils/uudecode/uudecode.c
+@@ -63,8 +63,7 @@
+ #include <unistd.h>
+ 
+ #ifndef NO_BASE64
+-#include <netinet/in.h>
+-#include <resolv.h>
++#include <util.h>
+ #endif
+ 
+ static int decode(char *);
+@@ -303,7 +302,7 @@
+ 		warnx("%s: base64 decoding is not supported", inputname);
+ 		return (1);
+ #else
+-		n = b64_pton(inbuf, outbuf, sizeof(outbuf));
++		n = compat_b64_pton(inbuf, outbuf, sizeof(outbuf));
+ #endif
+ 		if (n < 0)
+ 			break;
+--- src.orig/genutils/uuencode/uuencode.c
++++ src.netbsd/genutils/uuencode/uuencode.c
+@@ -50,15 +50,14 @@
+  */
+ #include <sys/types.h>
+ #include <sys/stat.h>
+-#include <netinet/in.h>
+ #include <err.h>
+ #include <errno.h>
+ #include <locale.h>
+-#include <resolv.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <unistd.h>
++#include <util.h>
+ 
+ static void encode(void);
+ static void base64_encode(void);
+@@ -141,7 +140,7 @@
+ 
+ 	while ((n = fread(buf, 1, sizeof(buf), stdin))) {
+ 		++sequence;
+-		rv = b64_ntop(buf, n, buf2, (sizeof(buf2) / sizeof(buf2[0])));
++		rv = compat_b64_ntop(buf, n, buf2, (sizeof(buf2) / sizeof(buf2[0])));
+ 		if (rv == -1)
+ 			errx(1, "b64_ntop: error encoding base64");
+ 		printf("%s%s", buf2, (sequence % GROUPS) ? "" : "\n");
+--- src.orig/genutils/uuidgen/uuidgen.c
++++ src.netbsd/genutils/uuidgen/uuidgen.c
+@@ -62,7 +62,16 @@
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <unistd.h>
+-#include <uuid.h>
++#include <errno.h>
++
++typedef struct uuid {
++	uint32_t	time_low;
++	uint16_t	time_mid;
++	uint16_t	time_hi_and_version;
++	uint8_t		clock_seq_hi_and_reserved;
++	uint8_t		clock_seq_low;
++	uint8_t		node[6];
++} uuid_t;
+ 
+ __dead static void
+ usage(void)
+@@ -73,6 +82,9 @@
+ 	exit(1);
+ }
+ 
++static int uuidgen(struct uuid *store, int count);
++static void uuid_to_string(const uuid_t *u, char **s, uint32_t *status);
++
+ int
+ main(int argc, char *argv[])
+ {
+@@ -183,3 +195,55 @@
+ 		fclose(fp);
+ 	return (0);
+ }
++
++static int
++uuidgen(struct uuid *store, int count)
++{
++	if (store == NULL) {
++		errno = EFAULT;
++		return -1;
++	}
++
++	if (count < 1 || count > 2048) {
++		errno = EINVAL;
++		return -1;
++	}
++
++	for (int i = 0; i < count; i++) {
++		size_t n = sizeof(store[i]);
++		unsigned char *p = (void*)&store[i];
++
++		while (n > 0) {
++			size_t chunk = n > 256 ? 256 : n;
++			if (getentropy(p, chunk) != 0) 
++				return -1;
++			p += chunk;
++			n -= chunk;
++		}
++
++		store[i].clock_seq_hi_and_reserved &= 0x3f;
++		store[i].clock_seq_hi_and_reserved |= 0x80;
++
++		store[i].time_hi_and_version &= 0x0fff;
++		store[i].time_hi_and_version |= 0x4000;
++	}
++
++	return 0;
++}
++
++static void
++uuid_to_string(const uuid_t *u, char **s, uint32_t *status)
++{
++	static const uuid_t nil = { .time_low = 0 };
++
++	if (s == NULL)
++		return;
++
++	if (u == NULL)
++		u = &nil;
++
++	asprintf(s, "%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
++	    u->time_low, u->time_mid, u->time_hi_and_version,
++	    u->clock_seq_hi_and_reserved, u->clock_seq_low, u->node[0],
++	    u->node[1], u->node[2], u->node[3], u->node[4], u->node[5]);
++}
 --- src.orig/gzip/gzip.c
 +++ src.netbsd/gzip/gzip.c
 @@ -1129,15 +1129,17 @@

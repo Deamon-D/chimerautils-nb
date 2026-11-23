@@ -202,6 +202,9 @@ usr.bin/c99
 usr.bin/cleantags
 bin/domainname
 usr.bin/machine
+usr.bin/uudecode
+usr.bin/uuencode
+usr.bin/uuidgen
 "
 
 for p in ${CMDS_CORE}; do

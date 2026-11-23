@@ -68,10 +68,11 @@ main (int argc, char *argv[])
 static void
 asa(FILE *f)
 {
-	char *buf;
-	size_t len;
+	char *buf = NULL;
+	size_t bufsize = 0;
+	ssize_t len;
 
-	if ((buf = fgetln(f, &len)) != NULL) {
+	if ((len = getline(&buf, &bufsize, f)) != -1) {
 		if (len > 0 && buf[len - 1] == '\n')
 			buf[--len] = '\0';
 		/* special case the first line */
@@ -87,7 +88,7 @@ asa(FILE *f)
 		if (len > 1 && buf[0] && buf[1])
 			(void)fwrite(buf + 1, 1, len - 1, stdout);
 
-		while ((buf = fgetln(f, &len)) != NULL) {
+		while ((len = getline(&buf, &bufsize, f)) != -1) {
 			if (len > 0 && buf[len - 1] == '\n')
 				buf[--len] = '\0';
 			switch (buf[0]) {

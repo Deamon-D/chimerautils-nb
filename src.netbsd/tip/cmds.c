@@ -543,7 +543,8 @@ consh(char c)
 	} else {
 		(void)dup2(FD, 0);
 		(void)dup2(FD, 1);
-		(void)closefrom(3);
+		for (int i = 3; errno != EBADF; i++)
+			(void)close(i);
 		(void)signal(SIGINT, SIG_DFL);
 		(void)signal(SIGQUIT, SIG_DFL);
 		execute(buf);

@@ -5627,6 +5627,16 @@
  		(void)signal(SIGINT, SIG_DFL);
  		(void)signal(SIGQUIT, SIG_DFL);
  		execute(buf);
+@@ -540,7 +543,8 @@
+ 	} else {
+ 		(void)dup2(FD, 0);
+ 		(void)dup2(FD, 1);
+-		(void)closefrom(3);
++		for (int i = 3; errno != EBADF; i++)
++			(void)close(i);
+ 		(void)signal(SIGINT, SIG_DFL);
+ 		(void)signal(SIGQUIT, SIG_DFL);
+ 		execute(buf);
 --- src.orig/tip/getcap.c
 +++ src.netbsd/tip/getcap.c
 @@ -740,6 +740,7 @@

@@ -330,8 +330,13 @@ cp -p usr/src/lib/libedit/filecomplete.h ${CWD}/src.netbsd/include
 
 # telnet uses this header
 mkdir -p ${CWD}/src.orig/telnet/arpa ${CWD}/src.netbsd/telnet/arpa
-cp -p usr/src/include/arpa/telnet.h	${CWD}/src.orig/telnet/arpa
-cp -p usr/src/include/arpa/telnet.h	${CWD}/src.netbsd/telnet/arpa
+cp -p usr/src/include/arpa/telnet.h ${CWD}/src.orig/telnet/arpa
+cp -p usr/src/include/arpa/telnet.h ${CWD}/src.netbsd/telnet/arpa
+
+# date uses this headers that is not provided by musl
+mkdir -p ${CWD}/src.orig/include/protocols ${CWD}/src.netbsd/include/protocols
+cp -p usr/src/include/protocols/timed.h ${CWD}/src.orig/include/protocols
+cp -p usr/src/include/protocols/timed.h ${CWD}/src.netbsd/include/protocols
 
 # These are not used
 rm -rf ${CWD}/src.orig/coreutils/sort/nls

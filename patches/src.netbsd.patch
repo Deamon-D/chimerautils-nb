@@ -919,7 +919,7 @@
  	time_t new_time;
  	struct tm *lt;
  	const char *dot, *t, *op;
-@@ -534,8 +535,11 @@
+@@ -534,12 +535,14 @@
  #ifndef HAVE_NBTOOL_CONFIG_H
  	struct utmpx utx;
  	memset(&utx, 0, sizeof(utx));
@@ -932,8 +932,15 @@
  	pututxline(&utx);
  
  	if (nflag || netsettime(new_time)) {
-@@ -555,7 +559,9 @@
- 		logwtmp("{", "date", "");
+-		logwtmp("|", "date", "");
+ 		if (aflag) {
+ 			tv.tv_sec = new_time - tval;
+ 			tv.tv_usec = 0;
+@@ -552,10 +555,11 @@
+ 			if (settimeofday(&tv, NULL))
+ 				err(EXIT_FAILURE, "settimeofday");
+ 		}
+-		logwtmp("{", "date", "");
  	}
  	utx.ut_type = NEW_TIME;
 -	(void)gettimeofday(&utx.ut_tv, NULL);

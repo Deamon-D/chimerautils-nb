@@ -543,7 +543,6 @@ setit:
 	pututxline(&utx);
 
 	if (nflag || netsettime(new_time)) {
-		logwtmp("|", "date", "");
 		if (aflag) {
 			tv.tv_sec = new_time - tval;
 			tv.tv_usec = 0;
@@ -556,7 +555,6 @@ setit:
 			if (settimeofday(&tv, NULL))
 				err(EXIT_FAILURE, "settimeofday");
 		}
-		logwtmp("{", "date", "");
 	}
 	utx.ut_type = NEW_TIME;
 	(void)gettimeofday(&utx_tv, NULL);

@@ -4721,7 +4721,15 @@
  	/* For each path, for each program... */
 --- src.orig/netcat/netcat.c
 +++ src.netbsd/netcat/netcat.c
-@@ -64,6 +64,17 @@
+@@ -34,6 +34,7 @@
+  * *Hobbit* <hobbit@avian.org>.
+  */
+ 
++#include <sys/random.h>
+ #include <sys/types.h>
+ #include <sys/socket.h>
+ #include <sys/uio.h>
+@@ -64,6 +65,17 @@
  #endif
  #include "atomicio.h"
  
@@ -4739,7 +4747,7 @@
  #ifdef __NetBSD__
  #define accept4(a, b, c, d) paccept((a), (b), (c), NULL, (d))
  #endif
-@@ -1443,8 +1454,12 @@
+@@ -1443,8 +1455,12 @@
  		 * Knuth, as in ip_randomid() in sys/netinet/ip_id.c.
  		 */
  		if (rflag) {

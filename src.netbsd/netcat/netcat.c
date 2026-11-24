@@ -34,6 +34,7 @@ __RCSID("$NetBSD: netcat.c,v 1.7 2023/06/20 08:51:24 rin Exp $");
  * *Hobbit* <hobbit@avian.org>.
  */
 
+#include <sys/random.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <sys/uio.h>

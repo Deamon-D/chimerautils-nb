@@ -3365,6 +3365,15 @@
  		err(2, "xreallocarray: allocating %zu * %zu bytes",
  		    nmemb, size);
  	}
+--- src.orig/diffutils/sdiff/common.h
++++ src.netbsd/diffutils/sdiff/common.h
+@@ -6,4 +6,6 @@
+  * Public domain.
+  */
+ 
++#include <sys/cdefs.h>
++
+ __dead void cleanup(const char *);
 --- src.orig/diffutils/sdiff/sdiff.c
 +++ src.netbsd/diffutils/sdiff/sdiff.c
 @@ -283,7 +283,7 @@
@@ -3484,15 +3493,18 @@
  	/* rmdir directories, unlink everything else */
  	if (S_ISDIR(entry->fts_statp->st_mode)) {
  		if (rmdir(entry->fts_accpath) < 0 && errno != ENOTEMPTY)
-@@ -723,6 +723,7 @@
+@@ -723,7 +723,9 @@
  	size_t cnt;
  	int brace, lastbrace;
  	char **argv, **ap, *p;
+-
++#ifndef ARG_MAX
 +	const unsigned long ARG_MAX = sysconf(_SC_ARG_MAX);
- 
++#endif
  	isoutput = 1;
  
-@@ -962,6 +963,7 @@
+ 	new = palloc(N_EXEC, f_exec);
+@@ -962,6 +964,7 @@
  int
  f_flags(PLAN *plan, FTSENT *entry)
  {
@@ -3500,7 +3512,7 @@
  	uint32_t flags;
  
  	flags = entry->fts_statp->st_flags;
-@@ -970,6 +972,9 @@
+@@ -970,6 +973,9 @@
  	else
  		return (flags == plan->f_data);
  	/* NOTREACHED */
@@ -3510,7 +3522,7 @@
  }
  
  PLAN *
-@@ -990,9 +995,11 @@
+@@ -990,9 +996,11 @@
  	}
  
  	flagset = 0;
@@ -3522,7 +3534,7 @@
  	new->f_data = flagset;
  	return (new);
  }
-@@ -1045,6 +1052,120 @@
+@@ -1045,6 +1053,120 @@
  	return (new);
  }
  
@@ -3643,7 +3655,7 @@
  /*
   * -fstype functions --
   *
-@@ -1057,7 +1178,7 @@
+@@ -1057,7 +1179,7 @@
  	static int first = 1;
  	struct statvfs sb;
  	static short val;
@@ -3652,7 +3664,7 @@
  	char *p, save[2];
  
  	memset(&save, 0, sizeof save);	/* XXX gcc */
-@@ -1099,13 +1220,13 @@
+@@ -1099,13 +1221,13 @@
  		 * always copy both of them.
  		 */
  		val = sb.f_flag;
@@ -3668,7 +3680,7 @@
  	default:
  		abort();
  	}
-@@ -1123,17 +1244,10 @@
+@@ -1123,17 +1245,10 @@
  	new = palloc(N_FSTYPE, f_fstype);
  
  	switch (*arg) {

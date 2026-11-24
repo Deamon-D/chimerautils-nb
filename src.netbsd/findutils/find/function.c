@@ -723,8 +723,9 @@ c_exec(char ***argvp, int isok, char *opt)
 	size_t cnt;
 	int brace, lastbrace;
 	char **argv, **ap, *p;
+#ifndef ARG_MAX
 	const unsigned long ARG_MAX = sysconf(_SC_ARG_MAX);
-
+#endif
 	isoutput = 1;
 
 	new = palloc(N_EXEC, f_exec);

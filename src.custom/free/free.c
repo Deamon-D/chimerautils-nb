@@ -170,33 +170,29 @@ main(int argc, char *argv[])
 	if (sysinfo(&info) != 0)
 		err(1, "sysinfo");
 
-	if (!(fp = fopen("/proc/meminfo", "r")))
-		err(1, "/proc/meminfo");
-
-	/* we need to get some values from /proc to match free output */
-	while (fgets(buf, sizeof(buf), fp)) {
-		if (!strncmp(buf, "MemAvailable:", 13)) {
-			if (sscanf(buf + 13, "%ld", &availableram) != 1)
-				errx(1, "cannot read MemAvailable from /proc/meminfo");
-			availableram = (availableram * 1024) / info.mem_unit;
-		} else if (!strncmp(buf, "Cached:", 7)) {
-			if (sscanf(buf + 7, "%ld", &cachedram) != 1)
-				errx(1, "cannot read Cached from /proc/meminfo");
-			cachedram = (cachedram * 1024) / info.mem_unit;
-		} else if (!strncmp(buf, "SReclaimable:", 13)) {
-			if (sscanf(buf + 13, "%ld", &sreclaimable) != 1)
-				errx(1, "cannot read SReclaimable from /poc/meminfo");
-			sreclaimable = (sreclaimable * 1024) / info.mem_unit;
+	/* we need to get some values from /proc to match procps-ng output */
+	if ((fp = fopen("/proc/meminfo", "r")) != NULL) {
+		while (fgets(buf, sizeof(buf), fp)) {
+			if (!strncmp(buf, "MemAvailable:", 13)) {
+				if (sscanf(buf + 13, "%ld", &availableram) == 1)
+					availableram = (availableram * 1024) / info.mem_unit;
+			} else if (!strncmp(buf, "Cached:", 7)) {
+				if (sscanf(buf + 7, "%ld", &cachedram) == 1)
+					cachedram = (cachedram * 1024) / info.mem_unit;
+			} else if (!strncmp(buf, "SReclaimable:", 13)) {
+				if (sscanf(buf + 13, "%ld", &sreclaimable) == 1)
+					sreclaimable = (sreclaimable * 1024) / info.mem_unit;
+			}
 		}
+
+		fclose(fp);
 	}
 
-	fclose(fp);
+	/* we only use sreclaimable if cachedram is available too */
+	sreclaimable = (!cachedram) ? 0 : sreclaimable;
 
-	/*
-	 * Check when these fields are not available (e.g, old kernels)
-	*/
-	if (!availableram || !cachedram || !sreclaimable)
-		fprintf(stderr, "WARNING: cannot get MemAvailable/Cached/SReclaimable from /proc\n");
+	/* use the old formula when availableram is not present (e.g, old kernels) */
+	availableram = (!availableram) ? (info.freeram + info.bufferram + cachedram) : availableram;
 
 	/* create these arrays to print its values in a loop */
 	unsigned long ram[RAM_SIZE] = {
@@ -214,8 +210,9 @@ main(int argc, char *argv[])
 		info.freeswap * info.mem_unit
 	};
 
+	/* print 'buffers' instead of 'buff/cache' when cachedram (obtained from /proc) is not available */
 	printf("%-10s %10s %10s %10s %10s %10s %10s\n%-10s",
-		"", "total", "used", "free", "shared", "buff/cache", "available", "Mem:");
+		"", "total", "used", "free", "shared", (!cachedram) ? "buffers" : "buff/cache", "available", "Mem:");
 
 	for (int i = 0; i < RAM_SIZE; i++) {
 		unit = best_unit(ram[i]);
@@ -234,7 +231,7 @@ main(int argc, char *argv[])
 			printf(" %10lu", swap[i] / unit);
 	}
 	putchar('\n');
-	return (!availableram || !cachedram || !sreclaimable);
+	return 0;
 }
 
 static const char *

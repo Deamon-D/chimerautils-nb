@@ -262,7 +262,7 @@ static enum avai_units
 best_unit(unsigned long value)
 {
 	/* use the current unit when --human has not been passed */
-	if (human)
+	if (!human)
 		return unit;
 
 	if (value < KIBIBYTES)

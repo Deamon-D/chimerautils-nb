@@ -425,14 +425,14 @@ Hist_Close(void *cookie)
 }
 
 static int
-Hist_Seek(void *cookie, off64_t *pos, int whence)
+Hist_Seek(void *cookie, off_t *pos, int whence)
 {
 	if (cookie != (void *)&History_fd) {
 		errno = EINVAL;
 		return -1;
 	}
 
-	return lseek(History_fd, (off_t)*pos, whence);
+	return lseek(History_fd, *pos, whence);
 }
 
 /*

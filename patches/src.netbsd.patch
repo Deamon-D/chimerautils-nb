@@ -2785,7 +2785,7 @@
  static int
 --- src.orig/coreutils/uname/uname.c
 +++ src.netbsd/coreutils/uname/uname.c
-@@ -42,9 +42,9 @@
+@@ -42,11 +42,15 @@
  #include <stdio.h>
  #include <stdlib.h>
  #include <unistd.h>
@@ -2795,12 +2795,18 @@
 -#include <sys/sysctl.h>
  #include <sys/utsname.h>
  
++#ifndef SYS_NMLN
++#define SYS_NMLN 65
++#endif
++
  __dead static void usage(void);
-@@ -113,12 +113,16 @@
+ 
+ /* Note that PRINT_MACHINE_ARCH is excluded from PRINT_ALL! */
+@@ -113,12 +117,16 @@
  		/* NOTREACHED */
  	}
  	if (print_mask & PRINT_MACHINE_ARCH) {
-+#if 0
++#ifdef __NetBSD__
  		int mib[2] = { CTL_HW, HW_MACHINE_ARCH };
  		size_t len = sizeof (machine_arch);
  

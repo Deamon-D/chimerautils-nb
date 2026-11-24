@@ -47,6 +47,10 @@ __RCSID("$NetBSD: uname.c,v 1.11 2011/09/06 18:35:13 joerg Exp $");
 
 #include <sys/utsname.h>
 
+#ifndef SYS_NMLN
+#define SYS_NMLN 65
+#endif
+
 __dead static void usage(void);
 
 /* Note that PRINT_MACHINE_ARCH is excluded from PRINT_ALL! */
@@ -113,7 +117,7 @@ main(int argc, char **argv)
 		/* NOTREACHED */
 	}
 	if (print_mask & PRINT_MACHINE_ARCH) {
-#if 0
+#ifdef __NetBSD__
 		int mib[2] = { CTL_HW, HW_MACHINE_ARCH };
 		size_t len = sizeof (machine_arch);
 

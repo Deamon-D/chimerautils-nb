@@ -3,7 +3,7 @@ grep_prog = executable(
     [ 'grep.c', 'file.c', 'queue.c', 'util.c', 'fastgrep.c' ],
     include_directories : [inc, cinc],
     dependencies : [zlib, bzip2],
-    link_with : [libcompat],
+    link_with : [libcompat, libutil],
     install : true,
 )
 

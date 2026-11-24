@@ -45,7 +45,6 @@ __RCSID("$NetBSD: sra.c,v 1.12 2021/10/30 10:46:57 nia Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <ttyent.h>
 
 #ifndef NOPAM
 #include <security/pam_appl.h>

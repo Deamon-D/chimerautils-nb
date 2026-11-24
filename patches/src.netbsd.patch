@@ -5373,7 +5373,15 @@
  }
 --- src.orig/telnet/libtelnet/sra.c
 +++ src.netbsd/telnet/libtelnet/sra.c
-@@ -439,7 +439,7 @@
+@@ -45,7 +45,6 @@
+ #include <stdlib.h>
+ #include <string.h>
+ #include <syslog.h>
+-#include <ttyent.h>
+ 
+ #ifndef NOPAM
+ #include <security/pam_appl.h>
+@@ -439,7 +438,7 @@
  	}
  }
  
@@ -5382,7 +5390,7 @@
  static int
  isroot(const char *usr)
  {
-@@ -464,10 +464,13 @@
+@@ -464,10 +463,13 @@
  
  	return ((t = getttynam(ttyn)) && t->ty_status & TTY_SECURE);
  }
@@ -5396,7 +5404,7 @@
  	struct passwd pws, *pw;
  	char pwbuf[1024];
  	char *xpasswd, *salt;
-@@ -492,6 +495,7 @@
+@@ -492,6 +494,7 @@
  		}
  		return 1;
  	}

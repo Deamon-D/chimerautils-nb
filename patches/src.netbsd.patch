@@ -4139,6 +4139,17 @@
 +	    u->clock_seq_hi_and_reserved, u->clock_seq_low, u->node[0],
 +	    u->node[1], u->node[2], u->node[3], u->node[4], u->node[5]);
 +}
+--- src.orig/grep/grep.c
++++ src.netbsd/grep/grep.c
+@@ -78,7 +78,7 @@
+ 
+ /* Flags passed to regcomp() and regexec() */
+ int		 cflags = 0;
+-int		 eflags = REG_STARTEND;
++int		 eflags = 0;
+ 
+ /* Searching patterns */
+ unsigned int	 patterns, pattern_sz;
 --- src.orig/gzip/gzip.c
 +++ src.netbsd/gzip/gzip.c
 @@ -1129,15 +1129,17 @@

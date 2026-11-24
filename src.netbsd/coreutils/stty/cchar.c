@@ -39,6 +39,7 @@ __RCSID("$NetBSD: cchar.c,v 1.16 2006/10/16 00:37:55 christos Exp $");
 #endif /* not lint */
 
 #include <sys/types.h>
+#include <sys/ttydefaults.h>
 
 #include <err.h>
 #include <limits.h>
@@ -59,7 +60,7 @@ __RCSID("$NetBSD: cchar.c,v 1.16 2006/10/16 00:37:55 christos Exp $");
  */
 const struct cchar cchars1[] = {
 	{ "discard",	VDISCARD, 	CDISCARD },
-#if 0
+#ifdef VDSUSP
 	{ "dsusp", 	VDSUSP,		CDSUSP },
 #endif
 	{ "eof",	VEOF,		CEOF },
@@ -73,7 +74,7 @@ const struct cchar cchars1[] = {
 	{ "quit",	VQUIT,		CQUIT },
 	{ "reprint",	VREPRINT, 	CREPRINT },
 	{ "start",	VSTART,		CSTART },
-#if 0
+#ifdef VSTATUS
 	{ "status",	VSTATUS, 	CSTATUS },
 #endif
 	{ "stop",	VSTOP,		CSTOP },

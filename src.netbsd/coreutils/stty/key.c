@@ -39,6 +39,7 @@ __RCSID("$NetBSD: key.c,v 1.22 2017/01/10 20:44:05 christos Exp $");
 #endif /* not lint */
 
 #include <sys/types.h>
+#include <sys/ttydefaults.h>
 
 #include <err.h>
 #include <errno.h>
@@ -52,6 +53,11 @@ __RCSID("$NetBSD: key.c,v 1.22 2017/01/10 20:44:05 christos Exp $");
 
 #include "stty.h"
 #include "extern.h"
+
+#if defined(__linux__)
+#define c_ispeed	__c_ispeed
+#define c_ospeed	__c_ospeed
+#endif
 
 __BEGIN_DECLS
 void	f_all(struct info *);
@@ -320,7 +326,7 @@ f_tty(struct info *ip)
 void
 f_ostart(struct info *ip)
 {
-#if 0
+#ifdef TIOCSTART
 	if (ioctl (0, TIOCSTART) < 0)
 		err(1, "TIOCSTART");
 #endif
@@ -329,7 +335,7 @@ f_ostart(struct info *ip)
 void
 f_ostop(struct info *ip)
 {
-#if 0
+#ifdef TIOCSTOP
 	if (ioctl (0, TIOCSTOP) < 0)
 		err(1, "TIOCSTOP");
 #endif

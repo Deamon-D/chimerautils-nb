@@ -230,7 +230,8 @@ pipefile(char dummy __unused)
 	} else {
 		(void)dup2(pdes[0], 0);
 		(void)close(pdes[0]);
-		(void)closefrom(3);
+		for (int i = 3; i < 20; i++)
+			close(i);
 		execute(buf);
 		(void)printf("can't execl!\r\n");
 		exit(0);

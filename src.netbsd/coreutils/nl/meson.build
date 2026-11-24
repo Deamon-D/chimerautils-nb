@@ -2,7 +2,7 @@ nl_prog = executable(
     'nl',
     ['nl.c'],
     include_directories: inc,
-    c_args : ['-Wno-format-nonliteral', '-Wno-missing-field-initializers'],
+    c_args : ['-Wno-format-nonliteral'],
     link_with: [libcompat],
     install: true,
 )

@@ -759,6 +759,17 @@
  
  #define HASHTYPE	"SHA512"
  #define HASHLEN		128
+--- src.orig/coreutils/cp/extern.h
++++ src.netbsd/coreutils/cp/extern.h
+@@ -34,6 +34,8 @@
+ #ifndef _EXTERN_H_
+ #define _EXTERN_H_
+ 
++#include <signal.h>
++
+ typedef struct {
+ 	char *p_end;			/* pointer to NULL at end of path */
+ 	char *target_end;		/* pointer to end of target base */
 --- src.orig/coreutils/cp/utils.c
 +++ src.netbsd/coreutils/cp/utils.c
 @@ -46,7 +46,6 @@
@@ -2002,6 +2013,21 @@
  	if (close(to_fd)) {
  		warn("%s", to);
  		return (1);
+--- src.orig/coreutils/nl/nl.c
++++ src.netbsd/coreutils/nl/nl.c
+@@ -70,9 +70,9 @@
+ #define NP_LAST		HEADER
+ 
+ static struct numbering_property numbering_properties[NP_LAST + 1] = {
+-	{ "footer",	number_none,	{ 0, 0, 0, 0 } },
+-	{ "body",	number_nonempty, { 0, 0, 0, 0 } },
+-	{ "header",	number_none,	{ 0, 0, 0, 0 } },
++	{ "footer",	number_none,	{0} },
++	{ "body",	number_nonempty, {0} },
++	{ "header",	number_none,	{0} },
+ };
+ 
+ #define max(a, b)	((a) > (b) ? (a) : (b))
 --- src.orig/coreutils/paste/paste.c
 +++ src.netbsd/coreutils/paste/paste.c
 @@ -94,9 +94,10 @@
@@ -2520,7 +2546,7 @@
  #include "stty.h"
  #include "extern.h"
  
-+#if defined(__linux__)
++#if defined(__linux__) && !defined(__GLIBC__)
 +#define c_ispeed	__c_ispeed
 +#define c_ospeed	__c_ospeed
 +#endif
@@ -5512,6 +5538,18 @@
  	(void)printf("Cannot synchronize with hayes...\n\r");
  	return(0);
  }
+--- src.orig/tip/cmds.c
++++ src.netbsd/tip/cmds.c
+@@ -230,7 +230,8 @@
+ 	} else {
+ 		(void)dup2(pdes[0], 0);
+ 		(void)close(pdes[0]);
+-		(void)closefrom(3);
++		for (int i = 3; i < 20; i++)
++			close(i);
+ 		execute(buf);
+ 		(void)printf("can't execl!\r\n");
+ 		exit(0);
 --- src.orig/tip/getcap.c
 +++ src.netbsd/tip/getcap.c
 @@ -740,6 +740,7 @@
@@ -5561,13 +5599,14 @@
  	(void)pipe(attndes);
 --- src.orig/tip/tip.h
 +++ src.netbsd/tip/tip.h
-@@ -40,7 +40,8 @@
+@@ -40,7 +40,9 @@
  #include <sys/ioctl.h>
  #include <sys/time.h>
  #include <sys/wait.h>
 -#include <machine/endian.h>
 +#include <sys/endian.h>
 +#include <sys/file.h>
++#include <sys/ttydefaults.h>
  
  #include <err.h>
  #include <fcntl.h>

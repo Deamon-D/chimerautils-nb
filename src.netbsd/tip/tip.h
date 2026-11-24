@@ -42,6 +42,7 @@
 #include <sys/wait.h>
 #include <sys/endian.h>
 #include <sys/file.h>
+#include <sys/ttydefaults.h>
 
 #include <err.h>
 #include <fcntl.h>

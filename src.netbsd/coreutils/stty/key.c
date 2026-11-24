@@ -54,7 +54,7 @@ __RCSID("$NetBSD: key.c,v 1.22 2017/01/10 20:44:05 christos Exp $");
 #include "stty.h"
 #include "extern.h"
 
-#if defined(__linux__)
+#if defined(__linux__) && !defined(__GLIBC__)
 #define c_ispeed	__c_ispeed
 #define c_ospeed	__c_ospeed
 #endif

@@ -37,6 +37,7 @@ static char sccsid[] = "@(#)cmds.c	8.1 (Berkeley) 6/6/93";
 __RCSID("$NetBSD: cmds.c,v 1.37 2014/07/12 05:28:07 mlelstv Exp $");
 #endif /* not lint */
 
+#include <errno.h>
 #include "tip.h"
 #include "pathnames.h"
 
@@ -230,8 +231,8 @@ pipefile(char dummy __unused)
 	} else {
 		(void)dup2(pdes[0], 0);
 		(void)close(pdes[0]);
-		for (int i = 3; i < 20; i++)
-			close(i);
+		for (int i = 3; errno != EBADF; i++)
+			(void)close(i);
 		execute(buf);
 		(void)printf("can't execl!\r\n");
 		exit(0);
@@ -492,7 +493,8 @@ pipeout(char c)
 			;
 	} else {
 		(void)dup2(FD, 1);
-		(void)closefrom(3);
+		for (int i = 3; errno != EBADF; i++)
+			(void)close(i);
 		(void)signal(SIGINT, SIG_DFL);
 		(void)signal(SIGQUIT, SIG_DFL);
 		execute(buf);

@@ -4302,7 +4302,15 @@
  	void *data;	/* user data */
 --- src.orig/m4/tokenizer.l
 +++ src.netbsd/m4/tokenizer.l
-@@ -28,8 +28,6 @@
+@@ -20,6 +20,7 @@
+ #include "nbtool_config.h"
+ #endif
+ #include "parser.h"
++#include <sys/cdefs.h>
+ __RCSID("$NetBSD: tokenizer.l,v 1.6 2012/03/20 20:34:58 matt Exp $");
+ #include <stdlib.h>
+ #include <errno.h>
+@@ -28,8 +29,6 @@
  
  extern int mimic_gnu;
  extern int32_t yylval;
@@ -4311,7 +4319,7 @@
  
  int32_t number(void);
  int32_t parse_radix(void);
-@@ -46,6 +44,8 @@
+@@ -46,6 +45,8 @@
  dec	[1-9][0-9]*
  radix	0[rR][0-9]+:[0-9a-zA-Z]+
  
@@ -4731,6 +4739,20 @@
  #ifdef __NetBSD__
  #define accept4(a, b, c, d) paccept((a), (b), (c), NULL, (d))
  #endif
+@@ -1443,8 +1454,12 @@
+ 		 * Knuth, as in ip_randomid() in sys/netinet/ip_id.c.
+ 		 */
+ 		if (rflag) {
++			int y;
++
+ 			for (x = 0; x <= hi - lo; x++) {
+-				cp = arc4random_uniform(x + 1);
++				if (getrandom(&y, sizeof(y), 0) < 0)
++					err(1, "getrandom");
++				cp = (y & 0xFFFF) % (hi - lo);
+ 				portlist[x] = portlist[cp];
+ 				if (asprintf(&portlist[cp], "%d", x + lo) < 0)
+ 					err(1, "asprintf");
 --- src.orig/netcat/socks.c
 +++ src.netbsd/netcat/socks.c
 @@ -39,7 +39,7 @@
@@ -4819,7 +4841,14 @@
 +#endif
 --- src.orig/sh/eval.c
 +++ src.netbsd/sh/eval.c
-@@ -55,7 +55,6 @@
+@@ -49,13 +49,12 @@
+ #include <errno.h>
+ #include <limits.h>
+ #include <unistd.h>
+-#include <sys/fcntl.h>
++#include <fcntl.h>
+ #include <sys/stat.h>
+ #include <sys/times.h>
  #include <sys/param.h>
  #include <sys/types.h>
  #include <sys/wait.h>

@@ -49,7 +49,7 @@ __RCSID("$NetBSD: eval.c,v 1.197.2.1 2026/06/03 18:21:41 martin Exp $");
 #include <errno.h>
 #include <limits.h>
 #include <unistd.h>
-#include <sys/fcntl.h>
+#include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/times.h>
 #include <sys/param.h>

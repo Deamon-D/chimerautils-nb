@@ -20,6 +20,7 @@
 #include "nbtool_config.h"
 #endif
 #include "parser.h"
+#include <sys/cdefs.h>
 __RCSID("$NetBSD: tokenizer.l,v 1.6 2012/03/20 20:34:58 matt Exp $");
 #include <stdlib.h>
 #include <errno.h>

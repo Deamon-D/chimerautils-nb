@@ -1454,8 +1454,12 @@ build_ports(char *p)
 		 * Knuth, as in ip_randomid() in sys/netinet/ip_id.c.
 		 */
 		if (rflag) {
+			int y;
+
 			for (x = 0; x <= hi - lo; x++) {
-				cp = arc4random_uniform(x + 1);
+				if (getrandom(&y, sizeof(y), 0) < 0)
+					err(1, "getrandom");
+				cp = (y & 0xFFFF) % (hi - lo);
 				portlist[x] = portlist[cp];
 				if (asprintf(&portlist[cp], "%d", x + lo) < 0)
 					err(1, "asprintf");

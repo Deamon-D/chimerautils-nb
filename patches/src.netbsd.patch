@@ -4096,6 +4096,17 @@
  		return (-1);
  	}
  	/* As above, initialize the first 256 entries in the table. */
+--- src.orig/m4/lib/ohash.h
++++ src.netbsd/m4/lib/ohash.h
+@@ -24,6 +24,8 @@
+  * techniques, and more efficient in most cases.
+  */
+ 
++#include <sys/cdefs.h>
++
+ struct ohash_info {
+ 	ptrdiff_t key_offset;
+ 	void *data;	/* user data */
 --- src.orig/m4/tokenizer.l
 +++ src.netbsd/m4/tokenizer.l
 @@ -28,8 +28,6 @@

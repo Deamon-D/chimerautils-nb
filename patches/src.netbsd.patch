@@ -5258,7 +5258,21 @@
  
  	BN_CTX_free(ctx);
  	BN_free(common);
-@@ -246,14 +246,14 @@
+@@ -163,8 +163,11 @@
+ {
+ 	size_t i;
+ 
+-	for (i = 0; i < seedsize; i++)
+-		seed[i] = arc4random() & 0xff;
++	for (i = 0; i < seedsize; i++) {
++		if (getrandom(&seed[i], sizeof(seed[i]), 0) < 0)
++			err(1, "getrandom");
++		seed[i] &= 0xff;
++	}
+ }
+ 
+ /*
+@@ -246,14 +249,14 @@
  {
  	char buf[256];
  	DesData i;
@@ -5276,7 +5290,7 @@
  	for (l = 0, op = 0; l < deslen; l++) {
  		out[op++] = hextab[(buf[l] & 0xf0) >> 4];
  		out[op++] = hextab[(buf[l] & 0x0f)];
-@@ -267,7 +267,7 @@
+@@ -267,7 +270,7 @@
  {
  	char buf[256];
  	DesData i;
@@ -5285,7 +5299,7 @@
  	int n1, n2, op;
  	size_t l;
  	size_t len = strlen(in) / 2;
-@@ -286,7 +286,7 @@
+@@ -286,7 +289,7 @@
  			n2 = in[op + 1] - '0';
  		buf[l] = (char)(n1 * 16 + n2);
  	}

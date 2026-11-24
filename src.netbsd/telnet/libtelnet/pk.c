@@ -163,8 +163,11 @@ getseed(char *seed, size_t seedsize)
 {
 	size_t i;
 
-	for (i = 0; i < seedsize; i++)
-		seed[i] = arc4random() & 0xff;
+	for (i = 0; i < seedsize; i++) {
+		if (getrandom(&seed[i], sizeof(seed[i]), 0) < 0)
+			err(1, "getrandom");
+		seed[i] &= 0xff;
+	}
 }
 
 /*

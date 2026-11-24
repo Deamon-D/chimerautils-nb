@@ -2085,6 +2085,16 @@
  		if (val < 0 || temp == arg || *temp != '\0')
  			usage();
  
+--- src.orig/coreutils/sort/sort.h
++++ src.netbsd/coreutils/sort/sort.h
+@@ -63,6 +63,7 @@
+  *	@(#)sort.h	8.1 (Berkeley) 6/6/93
+  */
+ 
++#include <sys/cdefs.h>
+ #include <sys/param.h>
+ 
+ #include <err.h>
 --- src.orig/coreutils/stat/stat.c
 +++ src.netbsd/coreutils/stat/stat.c
 @@ -30,9 +30,9 @@
@@ -2396,7 +2406,13 @@
  
 --- src.orig/coreutils/stty/cchar.c
 +++ src.netbsd/coreutils/stty/cchar.c
-@@ -44,6 +44,7 @@
+@@ -39,11 +39,13 @@
+ #endif /* not lint */
+ 
+ #include <sys/types.h>
++#include <sys/ttydefaults.h>
+ 
+ #include <err.h>
  #include <limits.h>
  #include <stddef.h>
  #include <stdlib.h>
@@ -2404,21 +2420,21 @@
  #include <string.h>
  
  #include "stty.h"
-@@ -58,7 +59,9 @@
+@@ -58,7 +60,9 @@
   */
  const struct cchar cchars1[] = {
  	{ "discard",	VDISCARD, 	CDISCARD },
-+#if 0
++#ifdef VDSUSP
  	{ "dsusp", 	VDSUSP,		CDSUSP },
 +#endif
  	{ "eof",	VEOF,		CEOF },
  	{ "eol",	VEOL,		CEOL },
  	{ "eol2",	VEOL2,		CEOL },
-@@ -70,7 +73,9 @@
+@@ -70,7 +74,9 @@
  	{ "quit",	VQUIT,		CQUIT },
  	{ "reprint",	VREPRINT, 	CREPRINT },
  	{ "start",	VSTART,		CSTART },
-+#if 0
++#ifdef VSTATUS
  	{ "status",	VSTATUS, 	CSTATUS },
 +#endif
  	{ "stop",	VSTOP,		CSTOP },
@@ -2426,7 +2442,27 @@
  	{ "time",	VTIME,		CTIME },
 --- src.orig/coreutils/stty/key.c
 +++ src.netbsd/coreutils/stty/key.c
-@@ -209,7 +209,7 @@
+@@ -39,6 +39,7 @@
+ #endif /* not lint */
+ 
+ #include <sys/types.h>
++#include <sys/ttydefaults.h>
+ 
+ #include <err.h>
+ #include <errno.h>
+@@ -53,6 +54,11 @@
+ #include "stty.h"
+ #include "extern.h"
+ 
++#if defined(__linux__)
++#define c_ispeed	__c_ispeed
++#define c_ospeed	__c_ospeed
++#endif
++
+ __BEGIN_DECLS
+ void	f_all(struct info *);
+ void	f_cbreak(struct info *);
+@@ -209,7 +215,7 @@
  {
  	int f, r;
  	
@@ -2435,7 +2471,7 @@
  	if (f >= 0) {
  		r = read(f, &(ip->t), sizeof(struct termios));
  		close(f);
-@@ -282,11 +282,11 @@
+@@ -282,11 +288,11 @@
  void
  f_sane(struct info *ip)
  {
@@ -2449,11 +2485,11 @@
  	ip->t.c_lflag = TTYDEF_LFLAG | (ip->t.c_lflag & LKEEP);
  	ip->t.c_oflag = TTYDEF_OFLAG;
  	ip->set = 1;
-@@ -320,13 +320,17 @@
+@@ -320,13 +326,17 @@
  void
  f_ostart(struct info *ip)
  {
-+#if 0
++#ifdef TIOCSTART
  	if (ioctl (0, TIOCSTART) < 0)
  		err(1, "TIOCSTART");
 +#endif
@@ -2462,7 +2498,7 @@
  void
  f_ostop(struct info *ip)
  {
-+#if 0
++#ifdef TIOCSTOP
  	if (ioctl (0, TIOCSTOP) < 0)
  		err(1, "TIOCSTOP");
 +#endif

@@ -1,7 +1,6 @@
 /*	$NetBSD: sha1.c,v 1.1 2001/03/20 18:46:27 atatat Exp $	*/
 
-#include <sha1.h>	/* this hash type */
-#include <md5.h>	/* the hash we're replacing */
+#include <bsdhash.h>
 
 /* avoid redefinition warning */
 #undef MD5Data

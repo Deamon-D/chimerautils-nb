@@ -107,9 +107,7 @@ __RCSID("$NetBSD: xinstall.c,v 1.130.2.1 2026/07/20 08:55:28 martin Exp $");
 #include <spawn.h>
 #endif
 
-#include <md5.h>
-#include <sha1.h>
-#include <sha2.h>
+#include <bsdhash.h>
 
 #include "pathnames.h"
 #include "mtree.h"

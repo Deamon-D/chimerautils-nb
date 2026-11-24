@@ -623,18 +623,21 @@
  .Re
 --- src.orig/coreutils/cksum/cksum.c
 +++ src.netbsd/coreutils/cksum/cksum.c
-@@ -91,10 +91,7 @@
+@@ -91,12 +91,7 @@
  #include <errno.h>
  #include <fcntl.h>
  #include <locale.h>
 -#include <md2.h>
 -#include <md4.h>
- #include <md5.h>
+-#include <md5.h>
 -#include <rmd160.h>
- #include <sha1.h>
- #include <sha2.h>
+-#include <sha1.h>
+-#include <sha2.h>
++#include <bsdhash.h>
  #include <stdio.h>
-@@ -119,18 +116,9 @@
+ #include <stdlib.h>
+ #include <string.h>
+@@ -119,18 +114,9 @@
  	void (*filterfunc)(int);
  	char *(*filefunc)(const char *, char *);
  } hashes[] = {
@@ -653,7 +656,7 @@
  	{ "sha1", "SHA1",
  	  SHA1String, SHA1TimeTrial, SHA1TestSuite,
  	  SHA1Filter, (_filefunc) SHA1File },
-@@ -556,10 +544,7 @@
+@@ -556,10 +542,7 @@
  	    sumargs, fileargs);
  	(void)fprintf(stderr, "       sum %s\n           %s\n",
  	    sumargs, fileargs);
@@ -674,66 +677,88 @@
  #include "crc_extern.h"
  
  __BEGIN_DECLS
+--- src.orig/coreutils/cksum/md5.c
++++ src.netbsd/coreutils/cksum/md5.c
+@@ -29,7 +29,7 @@
+ #include <sys/types.h>
+ 
+ #include <err.h>
+-#include <md5.h>
++#include <bsdhash.h>
+ #include <stdio.h>
+ #include <string.h>
+ #include <time.h>
 --- src.orig/coreutils/cksum/sha1.c
 +++ src.netbsd/coreutils/cksum/sha1.c
-@@ -3,6 +3,12 @@
- #include <sha1.h>	/* this hash type */
- #include <md5.h>	/* the hash we're replacing */
+@@ -1,7 +1,12 @@
+ /*	$NetBSD: sha1.c,v 1.1 2001/03/20 18:46:27 atatat Exp $	*/
  
+-#include <sha1.h>	/* this hash type */
+-#include <md5.h>	/* the hash we're replacing */
++#include <bsdhash.h>
++
 +/* avoid redefinition warning */
 +#undef MD5Data
 +#undef MD5Init
 +#undef MD5Update
 +#undef MD5End
-+
+ 
  #define HASHTYPE	"SHA1"
  #define HASHLEN		40
- 
 --- src.orig/coreutils/cksum/sha256.c
 +++ src.netbsd/coreutils/cksum/sha256.c
-@@ -7,6 +7,12 @@
- #include <sha2.h>	/* this hash type */
- #include <md5.h>	/* the hash we're replacing */
+@@ -4,8 +4,13 @@
+ #include "nbtool_config.h"
+ #endif
  
+-#include <sha2.h>	/* this hash type */
+-#include <md5.h>	/* the hash we're replacing */
++#include <bsdhash.h>
++
 +/* avoid redefinition warning */
 +#undef MD5Data
 +#undef MD5Init
 +#undef MD5Update
 +#undef MD5End
-+
+ 
  #define HASHTYPE	"SHA256"
  #define HASHLEN		64
- 
 --- src.orig/coreutils/cksum/sha384.c
 +++ src.netbsd/coreutils/cksum/sha384.c
-@@ -7,6 +7,12 @@
- #include <sha2.h>	/* this hash type */
- #include <md5.h>	/* the hash we're replacing */
+@@ -4,8 +4,13 @@
+ #include "nbtool_config.h"
+ #endif
  
+-#include <sha2.h>	/* this hash type */
+-#include <md5.h>	/* the hash we're replacing */
++#include <bsdhash.h>
++
 +/* avoid redefinition warning */
 +#undef MD5Data
 +#undef MD5Init
 +#undef MD5Update
 +#undef MD5End
-+
+ 
  #define HASHTYPE	"SHA384"
  #define HASHLEN		96
- 
 --- src.orig/coreutils/cksum/sha512.c
 +++ src.netbsd/coreutils/cksum/sha512.c
-@@ -7,6 +7,12 @@
- #include <sha2.h>	/* this hash type */
- #include <md5.h>	/* the hash we're replacing */
+@@ -4,8 +4,13 @@
+ #include "nbtool_config.h"
+ #endif
  
+-#include <sha2.h>	/* this hash type */
+-#include <md5.h>	/* the hash we're replacing */
++#include <bsdhash.h>
++
 +/* avoid redefinition warning */
 +#undef MD5Data
 +#undef MD5Init
 +#undef MD5Update
 +#undef MD5End
-+
+ 
  #define HASHTYPE	"SHA512"
  #define HASHLEN		128
- 
 --- src.orig/coreutils/cp/utils.c
 +++ src.netbsd/coreutils/cp/utils.c
 @@ -46,7 +46,6 @@
@@ -3017,15 +3042,19 @@
  #else
  #define HAVE_FUTIMES 1
  #define HAVE_POSIX_SPAWN 1
-@@ -108,7 +108,6 @@
+@@ -107,10 +107,7 @@
+ #include <spawn.h>
  #endif
  
- #include <md5.h>
+-#include <md5.h>
 -#include <rmd160.h>
- #include <sha1.h>
- #include <sha2.h>
+-#include <sha1.h>
+-#include <sha2.h>
++#include <bsdhash.h>
  
-@@ -128,7 +127,6 @@
+ #include "pathnames.h"
+ #include "mtree.h"
+@@ -128,7 +125,6 @@
  static char	*group, *owner, *fflags, *tags;
  static FILE	*metafp;
  static char	*metafile;
@@ -3033,7 +3062,7 @@
  static char	*stripArgs;
  static char	*afterinstallcmd;
  static const char *suffix = BACKUP_SUFFIX;
-@@ -137,7 +135,6 @@
+@@ -137,7 +133,6 @@
  static enum {
  	DIGEST_NONE = 0,
  	DIGEST_MD5,
@@ -3041,7 +3070,7 @@
  	DIGEST_SHA1,
  	DIGEST_SHA256,
  	DIGEST_SHA384,
-@@ -338,8 +335,6 @@
+@@ -338,8 +333,6 @@
  			digesttype = DIGEST_NONE;
  		} else if (strcmp(digest, "md5") == 0) {
  			digesttype = DIGEST_MD5;
@@ -3050,7 +3079,7 @@
  		} else if (strcmp(digest, "sha1") == 0) {
  			digesttype = DIGEST_SHA1;
  		} else if (strcmp(digest, "sha256") == 0) {
-@@ -465,6 +460,24 @@
+@@ -465,6 +458,24 @@
  }
  
  /*
@@ -3075,7 +3104,7 @@
   * do_link --
   *	make a hard link, obeying dorename if set
   *	return -1 on failure
-@@ -478,7 +491,7 @@
+@@ -478,7 +489,7 @@
  	if (dorename) {
  		(void)snprintf(tmpl, sizeof(tmpl), "%s.inst.XXXXXX", to_name);
  		/* This usage is safe. */
@@ -3084,7 +3113,7 @@
  			err(EXIT_FAILURE, "%s: mktemp", tmpl);
  		ret = link(from_name, tmpl);
  		if (ret == 0) {
-@@ -510,7 +523,7 @@
+@@ -510,7 +521,7 @@
  	if (dorename) {
  		(void)snprintf(tmpl, sizeof(tmpl), "%s.inst.XXXXXX", to_name);
  		/* This usage is safe. */
@@ -3093,7 +3122,7 @@
  			err(EXIT_FAILURE, "%s: mktemp", tmpl);
  
  		if (symlink(from_name, tmpl) == -1)
-@@ -574,9 +587,6 @@
+@@ -574,9 +585,6 @@
  				case DIGEST_MD5:
  					dres = MD5File(from_name, NULL);
  					break;
@@ -3103,7 +3132,7 @@
  				case DIGEST_SHA1:
  					dres = SHA1File(from_name, NULL);
  					break;
-@@ -872,7 +882,6 @@
+@@ -872,7 +880,6 @@
  	u_char	*p;
  	u_char	buf[MAXBSIZE];
  	MD5_CTX		ctxMD5;
@@ -3111,7 +3140,7 @@
  	SHA1_CTX	ctxSHA1;
  	SHA256_CTX	ctxSHA256;
  	SHA384_CTX	ctxSHA384;
-@@ -882,9 +891,6 @@
+@@ -882,9 +889,6 @@
  	case DIGEST_MD5:
  		MD5Init(&ctxMD5);
  		break;
@@ -3121,7 +3150,7 @@
  	case DIGEST_SHA1:
  		SHA1Init(&ctxSHA1);
  		break;
-@@ -938,9 +944,6 @@
+@@ -938,9 +942,6 @@
  			case DIGEST_MD5:
  				MD5Update(&ctxMD5, p, size);
  				break;
@@ -3131,7 +3160,7 @@
  			case DIGEST_SHA1:
  				SHA1Update(&ctxSHA1, p, size);
  				break;
-@@ -972,9 +975,6 @@
+@@ -972,9 +973,6 @@
  				case DIGEST_MD5:
  					MD5Update(&ctxMD5, buf, nr);
  					break;
@@ -3141,7 +3170,7 @@
  				case DIGEST_SHA1:
  					SHA1Update(&ctxSHA1, buf, nr);
  					break;
-@@ -1002,8 +1002,6 @@
+@@ -1002,8 +1000,6 @@
  	switch (digesttype) {
  	case DIGEST_MD5:
  		return MD5End(&ctxMD5, NULL);

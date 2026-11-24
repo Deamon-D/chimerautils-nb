@@ -29,7 +29,7 @@ __RCSID("$NetBSD: md5.c,v 1.10 2008/12/29 00:51:29 christos Exp $");
 #include <sys/types.h>
 
 #include <err.h>
-#include <md5.h>
+#include <bsdhash.h>
 #include <stdio.h>
 #include <string.h>
 #include <time.h>

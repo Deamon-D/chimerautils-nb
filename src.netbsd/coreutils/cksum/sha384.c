@@ -4,8 +4,7 @@
 #include "nbtool_config.h"
 #endif
 
-#include <sha2.h>	/* this hash type */
-#include <md5.h>	/* the hash we're replacing */
+#include <bsdhash.h>
 
 /* avoid redefinition warning */
 #undef MD5Data

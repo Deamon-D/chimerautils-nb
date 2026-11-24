@@ -91,9 +91,7 @@ __RCSID("$NetBSD: cksum.c,v 1.52.6.1 2026/05/04 14:06:10 snj Exp $");
 #include <errno.h>
 #include <fcntl.h>
 #include <locale.h>
-#include <md5.h>
-#include <sha1.h>
-#include <sha2.h>
+#include <bsdhash.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

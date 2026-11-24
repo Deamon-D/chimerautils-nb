@@ -76,12 +76,23 @@
  
 --- src.orig/awk/main.c
 +++ src.netbsd/awk/main.c
-@@ -37,7 +37,7 @@
+@@ -22,6 +22,8 @@
+ THIS SOFTWARE.
+ ****************************************************************/
+ 
++#include <sys/cdefs.h>
++
+ #if HAVE_NBTOOL_CONFIG_H
+ #include "nbtool_config.h"
+ #endif
+@@ -37,7 +39,9 @@
  #include <string.h>
  #include <signal.h>
  #include "awk.h"
 -#include "awkgram.h"
 +#include "awkgram.tab.h"
++
++#define noreturn	__dead
  
  extern	char	**environ;
  extern	int	nfields;
@@ -4096,6 +4107,19 @@
  		return (-1);
  	}
  	/* As above, initialize the first 256 entries in the table. */
+--- src.orig/include/fts.h
++++ src.netbsd/include/fts.h
+@@ -34,6 +34,10 @@
+ #ifndef	_FTS_H_
+ #define	_FTS_H_
+ 
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <stdint.h>
++
+ #ifndef	__fts_stat_t
+ #define	__fts_stat_t	struct stat
+ #endif
 --- src.orig/m4/lib/ohash.h
 +++ src.netbsd/m4/lib/ohash.h
 @@ -24,6 +24,8 @@

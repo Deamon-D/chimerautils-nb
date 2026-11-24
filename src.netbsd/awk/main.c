@@ -22,6 +22,8 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF
 THIS SOFTWARE.
 ****************************************************************/
 
+#include <sys/cdefs.h>
+
 #if HAVE_NBTOOL_CONFIG_H
 #include "nbtool_config.h"
 #endif
@@ -38,6 +40,8 @@ const char	*version = "version 20240728";
 #include <signal.h>
 #include "awk.h"
 #include "awkgram.tab.h"
+
+#define noreturn	__dead
 
 extern	char	**environ;
 extern	int	nfields;

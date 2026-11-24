@@ -34,6 +34,10 @@
 #ifndef	_FTS_H_
 #define	_FTS_H_
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdint.h>
+
 #ifndef	__fts_stat_t
 #define	__fts_stat_t	struct stat
 #endif

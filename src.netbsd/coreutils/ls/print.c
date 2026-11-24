@@ -65,6 +65,10 @@ __RCSID("$NetBSD: print.c,v 1.59 2024/12/11 12:56:31 simonb Exp $");
 #include "ls.h"
 #include "extern.h"
 
+#ifndef S_BLKSIZE
+#define S_BLKSIZE	512
+#endif
+
 extern int termwidth;
 
 static int	printaname(FTSENT *, int, int);

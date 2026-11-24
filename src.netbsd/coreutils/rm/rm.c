@@ -43,6 +43,7 @@ __RCSID("$NetBSD: rm.c,v 1.55 2025/05/12 06:34:19 kim Exp $");
 #endif
 #endif /* not lint */
 
+#include <sys/random.h>
 #include <sys/param.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -385,6 +386,15 @@ rm_file(char **argv)
  * rm_overwrite will return 0 on success.
  */
 
+uint32_t
+arc_random(void)
+{
+	uint32_t n;
+	if (getrandom(&n, sizeof(n), 0) < 0)
+		err(1, "getrandom");
+	return n;
+}
+
 static int
 rm_overwrite(char *file, struct stat *sbp)
 {
@@ -432,7 +442,7 @@ rm_overwrite(char *file, struct stat *sbp)
 		if (mode == RAND_BYTES) {				\
 			for (i = 0; i < sizeof(buf); 			\
 			    i+= sizeof(u_int32_t))			\
-				*(int *)(buf + i) = arc4random();	\
+				*(int *)(buf + i) = arc_random();	\
 		}							\
 		wlen = len < (off_t)sizeof(buf) ? (size_t)len : sizeof(buf); \
 		if ((size_t)write(fd, buf, wlen) != wlen)		\
@@ -466,7 +476,7 @@ rm_overwrite(char *file, struct stat *sbp)
 	 * option 'c' "Overwrite all addressable locations with a single 
 	 * character."
 	 */
-	randint = arc4random();
+	randint = arc_random();
 	randchar = *(char *)&randint;
 	WRITE_PASS(THIS_BYTE, randchar);
 

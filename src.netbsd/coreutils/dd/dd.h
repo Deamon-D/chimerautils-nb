@@ -45,8 +45,11 @@ struct ddfops {
 	int (*op_close)(int);
 
 	int (*op_fcntl)(int, int, ...);
+#if defined(__linux__) && !defined(__GLIBC__)
+	int (*op_ioctl)(int, int, ...);
+#else
 	int (*op_ioctl)(int, unsigned long, ...);
-
+#endif
 	int (*op_fstat)(int, struct stat *);
 	int (*op_fsync)(int);
 	int (*op_ftruncate)(int, off_t);

@@ -107,6 +107,9 @@ main(int argc, char *argv[])
 		break;
 	}
 
+	if (processors <= 0)
+		processors = 1;
+
 	/*
 	 * The result must be at least 1
 	*/

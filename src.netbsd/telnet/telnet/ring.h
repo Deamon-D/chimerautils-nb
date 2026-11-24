@@ -32,6 +32,7 @@
  */
 
 #include <sys/cdefs.h>
+#include <sys/types.h>
 
 /*
  * This defines a structure for a ring buffer.

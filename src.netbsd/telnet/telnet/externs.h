@@ -36,7 +36,7 @@
 #include <setjmp.h>
 #include <sys/ioctl.h>
 #include <errno.h>
-#include <sys/termios.h>
+#include <termios.h>
 
 #include <string.h>
 

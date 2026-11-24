@@ -5240,16 +5240,23 @@
   * Shell variables.
 --- src.orig/telnet/libtelnet/pk.c
 +++ src.netbsd/telnet/libtelnet/pk.c
-@@ -48,7 +48,7 @@
+@@ -48,12 +48,14 @@
   */
  
  #include <sys/time.h>
 -#include <des.h>
++#include <sys/random.h>
 +#include <openssl/des.h>
  #include <openssl/bn.h>
  #include <fcntl.h>
  #include <stdio.h>
-@@ -146,7 +146,7 @@
+ #include <stdlib.h>
+ #include <string.h>
++#include <err.h>
+ 
+ #include "pk.h"
+  
+@@ -146,7 +148,7 @@
  	BN_mod_exp(common, public, secret, modulus, ctx);
  	extractdeskey(common, deskey);
  	extractideakey(common, ideakey);
@@ -5258,7 +5265,7 @@
  
  	BN_CTX_free(ctx);
  	BN_free(common);
-@@ -163,8 +163,11 @@
+@@ -163,8 +165,11 @@
  {
  	size_t i;
  
@@ -5272,7 +5279,7 @@
  }
  
  /*
-@@ -246,14 +249,14 @@
+@@ -246,14 +251,14 @@
  {
  	char buf[256];
  	DesData i;
@@ -5290,7 +5297,7 @@
  	for (l = 0, op = 0; l < deslen; l++) {
  		out[op++] = hextab[(buf[l] & 0xf0) >> 4];
  		out[op++] = hextab[(buf[l] & 0x0f)];
-@@ -267,7 +270,7 @@
+@@ -267,7 +272,7 @@
  {
  	char buf[256];
  	DesData i;
@@ -5299,7 +5306,7 @@
  	int n1, n2, op;
  	size_t l;
  	size_t len = strlen(in) / 2;
-@@ -286,7 +289,7 @@
+@@ -286,7 +291,7 @@
  			n2 = in[op + 1] - '0';
  		buf[l] = (char)(n1 * 16 + n2);
  	}
@@ -5394,6 +5401,15 @@
  #if defined(IPSEC) && defined(IPSEC_POLICY_IPSEC)
 --- src.orig/telnet/telnet/externs.h
 +++ src.netbsd/telnet/telnet/externs.h
+@@ -36,7 +36,7 @@
+ #include <setjmp.h>
+ #include <sys/ioctl.h>
+ #include <errno.h>
+-#include <sys/termios.h>
++#include <termios.h>
+ 
+ #include <string.h>
+ 
 @@ -346,8 +346,11 @@
  #  define termStopChar		new_tc.c_cc[VSTOP]
  #  define termForw1Char		new_tc.c_cc[VEOL]
@@ -5407,6 +5423,16 @@
  # define termEofCharp		&termEofChar
  # define termEraseCharp		&termEraseChar
  # define termIntCharp		&termIntChar
+--- src.orig/telnet/telnet/ring.h
++++ src.netbsd/telnet/telnet/ring.h
+@@ -32,6 +32,7 @@
+  */
+ 
+ #include <sys/cdefs.h>
++#include <sys/types.h>
+ 
+ /*
+  * This defines a structure for a ring buffer.
 --- src.orig/telnet/telnet/sys_bsd.c
 +++ src.netbsd/telnet/telnet/sys_bsd.c
 @@ -169,8 +169,7 @@
@@ -5430,7 +5456,26 @@
      case SLC_SYNCH:
      case SLC_BRK:
      case SLC_EOR:
-@@ -569,7 +569,7 @@
+@@ -243,6 +243,7 @@
+ {
+     static int prevmode = 0;
+     struct termios tmp_tc;
++    sigset_t mask;
+     int onoff;
+     int old;
+     cc_t esc;
+@@ -410,7 +411,9 @@
+     } else {
+ 	(void) signal(SIGINFO, (void (*)(int)) ayt_status);
+ 	(void) signal(SIGTSTP, SIG_DFL);
+-	(void) sigsetmask(sigblock(0) & ~(1<<(SIGTSTP-1)));
++	(void) sigprocmask(SIG_SETMASK, NULL, &mask);
++	(void) sigdelset(&mask, SIGTSTP);
++	(void) sigprocmask(SIG_SETMASK, &mask, NULL);
+ 	tmp_tc = old_tc;
+     }
+     if (tcsetattr(tin, TCSADRAIN, &tmp_tc) < 0)
+@@ -569,7 +572,7 @@
      set[2].fd = tin;
      set[2].events = ttyin ? POLLIN : 0;
  

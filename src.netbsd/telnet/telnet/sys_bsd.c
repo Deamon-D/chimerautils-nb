@@ -243,6 +243,7 @@ TerminalNewMode(int f)
 {
     static int prevmode = 0;
     struct termios tmp_tc;
+    sigset_t mask;
     int onoff;
     int old;
     cc_t esc;
@@ -410,7 +411,9 @@ TerminalNewMode(int f)
     } else {
 	(void) signal(SIGINFO, (void (*)(int)) ayt_status);
 	(void) signal(SIGTSTP, SIG_DFL);
-	(void) sigsetmask(sigblock(0) & ~(1<<(SIGTSTP-1)));
+	(void) sigprocmask(SIG_SETMASK, NULL, &mask);
+	(void) sigdelset(&mask, SIGTSTP);
+	(void) sigprocmask(SIG_SETMASK, &mask, NULL);
 	tmp_tc = old_tc;
     }
     if (tcsetattr(tin, TCSADRAIN, &tmp_tc) < 0)

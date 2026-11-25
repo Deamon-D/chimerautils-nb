@@ -3937,38 +3937,6 @@
  	return (match == 0);
  }
  
---- src.orig/gencat/gencat.c
-+++ src.netbsd/gencat/gencat.c
-@@ -95,6 +95,29 @@
- #ifndef NL_MSGMAX
- #define NL_MSGMAX 2048
- #endif
-+#ifndef _NLS_MAGIC
-+#define _NLS_MAGIC	0xff88ff89
-+#endif
-+
-+struct _nls_cat_hdr {
-+	int32_t __magic;
-+	int32_t __nsets;
-+	int32_t __mem;
-+	int32_t __msg_hdr_offset;
-+	int32_t __msg_txt_offset;
-+};
-+
-+struct _nls_set_hdr {
-+	int32_t __setno;	/* set number: 0 < x <= NL_SETMAX */
-+	int32_t __nmsgs;	/* number of messages in the set  */
-+	int32_t __index;	/* index of first msg_hdr in msg_hdr table */
-+};
-+
-+struct _nls_msg_hdr {
-+	int32_t __msgno;	/* msg number: 0 < x <= NL_MSGMAX */
-+	int32_t __msglen;
-+	int32_t __offset;
-+};
- 
- struct _msgT {
- 	long    msgId;
 --- src.orig/genutils/asa/asa.c
 +++ src.netbsd/genutils/asa/asa.c
 @@ -68,10 +68,11 @@
@@ -4001,6 +3969,38 @@
  	}
 +	free(buf);
  }
+--- src.orig/genutils/gencat/gencat.c
++++ src.netbsd/genutils/gencat/gencat.c
+@@ -95,6 +95,29 @@
+ #ifndef NL_MSGMAX
+ #define NL_MSGMAX 2048
+ #endif
++#ifndef _NLS_MAGIC
++#define _NLS_MAGIC	0xff88ff89
++#endif
++
++struct _nls_cat_hdr {
++	int32_t __magic;
++	int32_t __nsets;
++	int32_t __mem;
++	int32_t __msg_hdr_offset;
++	int32_t __msg_txt_offset;
++};
++
++struct _nls_set_hdr {
++	int32_t __setno;	/* set number: 0 < x <= NL_SETMAX */
++	int32_t __nmsgs;	/* number of messages in the set  */
++	int32_t __index;	/* index of first msg_hdr in msg_hdr table */
++};
++
++struct _nls_msg_hdr {
++	int32_t __msgno;	/* msg number: 0 < x <= NL_MSGMAX */
++	int32_t __msglen;
++	int32_t __offset;
++};
+ 
+ struct _msgT {
+ 	long    msgId;
 --- src.orig/genutils/rs/rs.c
 +++ src.netbsd/genutils/rs/rs.c
 @@ -55,6 +55,7 @@

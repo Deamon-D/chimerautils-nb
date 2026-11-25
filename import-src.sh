@@ -201,6 +201,9 @@ usr.bin/c89
 usr.bin/c99
 usr.bin/cleantags
 bin/domainname
+usr.bin/gencat
+usr.bin/getconf
+usr.bin/getent
 usr.bin/machine
 usr.bin/rs
 usr.bin/uudecode
@@ -239,7 +242,6 @@ copy_cmd bin/sh
 copy_cmd usr.bin/apply
 copy_cmd usr.bin/dc "" bc/dc
 copy_cmd usr.bin/compress
-copy_cmd usr.bin/gencat
 copy_cmd usr.bin/grep
 copy_cmd usr.bin/gzip
 copy_cmd usr.bin/jot
